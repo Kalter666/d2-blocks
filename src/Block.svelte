@@ -1,11 +1,22 @@
 <script>
   import Stack from './Stack.svelte';
   import { app, commit, del, reorder } from './store.svelte.js';
-  import { keys, safeKey, renameKey, SHAPES, STYLE_PROPS, DIRECTIONS, ARROWS } from './blocks.js';
+  import { keys, safeKey, renameKey, collides, SHAPES, STYLE_PROPS, DIRECTIONS, ARROWS } from './blocks.js';
 
-  let { block, path = '' } = $props();
+  let { block, path = '', siblings = [] } = $props();
 
   const options = $derived(keys(app.blocks));
+  const named = $derived(block.type === 'box' || block.type === 'group');
+
+  // Typing can't be refused mid-word — you'd never get to type "authx" past
+  // "auth" — so a bad name is flagged instead of blocked. d2 would merge two
+  // same-named boxes into one shape with both sets of edges, and say nothing.
+  const problem = $derived.by(() => {
+    if (!named) return '';
+    if (!block.name.trim()) return 'Needs a name.';
+    if (collides(siblings, block.name, block)) return `Another ${block.type} here is already called that — d2 will merge them.`;
+    return '';
+  });
 
   // The d2 id this block draws on the canvas, so hovering can light it up.
   const targetId = $derived.by(() => {
@@ -63,7 +74,7 @@
 
     {#if block.type === 'box'}
       <span class="verb">box</span>
-      <input class="slot name" value={block.name} oninput={(e) => setName(e.currentTarget.value)} onfocus={commit} placeholder="name" size="8" />
+      <input class="slot name" class:bad={problem} aria-invalid={!!problem} value={block.name} oninput={(e) => setName(e.currentTarget.value)} onfocus={commit} placeholder="name" size="8" />
       <span class="verb dim">labelled</span>
       <input class="slot" bind:value={block.label} onfocus={commit} placeholder="same as name" size="10" />
       <span class="verb dim">shaped</span>
@@ -73,7 +84,7 @@
 
     {:else if block.type === 'group'}
       <span class="verb">group</span>
-      <input class="slot name" value={block.name} oninput={(e) => setName(e.currentTarget.value)} onfocus={commit} placeholder="name" size="8" />
+      <input class="slot name" class:bad={problem} aria-invalid={!!problem} value={block.name} oninput={(e) => setName(e.currentTarget.value)} onfocus={commit} placeholder="name" size="8" />
       <span class="verb dim">labelled</span>
       <input class="slot" bind:value={block.label} onfocus={commit} placeholder="same as name" size="10" />
 
@@ -117,6 +128,8 @@
 
     <button class="remove" onclick={() => del(block)} title="Delete this block">×</button>
   </div>
+
+  {#if problem}<p class="problem">{problem}</p>{/if}
 
   {#if block.type === 'group'}
     <div class="children">
@@ -183,6 +196,13 @@
   }
   .slot:focus-visible { outline: 2px solid var(--tint); outline-offset: 0; }
   .name { font-weight: 600; }
+  .bad { border-color: #dc2626; background: color-mix(in oklab, #dc2626 8%, var(--bg)); }
+  .bad:focus-visible { outline-color: #dc2626; }
+
+  .problem {
+    margin: 0; padding: 0 10px 7px 24px;
+    font-size: 11px; color: #dc2626;
+  }
   .arrow { font-family: var(--mono); }
 
   .swatch {

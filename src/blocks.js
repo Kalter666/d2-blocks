@@ -243,8 +243,28 @@ export function wouldNest(block, list) {
  * dragged block still in place. Removing it first shifts everything after it
  * down by one, so a same-list move to a later slot has to compensate.
  */
-export function moveInto(blocks, block, list, index) {
+/**
+ * Does `list` already hold a box or group whose d2 key matches `name`?
+ * d2 merges repeated keys into one shape, so two boxes called `auth` in the
+ * same scope become one — silently, and with both sets of edges attached.
+ * Compared by key rather than raw name because the key is what d2 actually
+ * resolves. (`q` happens to be injective, so today the two agree — but the key
+ * is the thing that has to be unique, so that's what this checks.)
+ */
+export function collides(list, name, ignore) {
+  const key = q(name);
+  return list.some((b) => b !== ignore && (b.type === 'box' || b.type === 'group') && q(b.name) === key);
+}
+
+/** Can `block` be dropped into `list` at all? Same checks moveInto enforces. */
+export function canMoveInto(block, list) {
   if (wouldNest(block, list)) return false;
+  const named = block.type === 'box' || block.type === 'group';
+  return !(named && collides(list, block.name, block));
+}
+
+export function moveInto(blocks, block, list, index) {
+  if (!canMoveInto(block, list)) return false;
   const from = parentOf(blocks, block);
   if (!from) return false;
   const shift = from === list && from.indexOf(block) < index ? 1 : 0;

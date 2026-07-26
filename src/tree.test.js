@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { moveInto, reorderIn, parentOf, wouldNest, keys, renameKey, serialize } from './blocks.js';
+import {
+  moveInto, reorderIn, parentOf, wouldNest, keys, renameKey, serialize, collides, canMoveInto,
+} from './blocks.js';
 import { encode, decode } from './share.js';
 
 const box = (name) => ({ type: 'box', name, label: '', shape: '' });
@@ -96,6 +98,41 @@ test('dragging a group out carries its children’s links', () => {
   assert.equal(moveInto(t, inner, t, 0), true);
   assert.equal(link.src, 'inner.x');
   assert.equal(link.dst, 'inner');
+});
+
+test('a drop that would merge two same-named boxes is refused', () => {
+  const outer = box('svc');
+  const auth = group('AUTH', [box('svc'), box('db')]);
+  const t = [outer, auth];
+
+  assert.equal(canMoveInto(outer, auth.children), false);
+  assert.equal(moveInto(t, outer, auth.children, 0), false);
+  assert.deepEqual(names(t), 'svc AUTH AUTH.svc AUTH.db', 'nothing moved');
+
+  // Renaming clears the obstruction.
+  outer.name = 'gateway';
+  assert.equal(moveInto(t, outer, auth.children, 0), true);
+  assert.equal(names(t), 'AUTH AUTH.gateway AUTH.svc AUTH.db');
+});
+
+test('collision is judged by the key d2 will see', () => {
+  assert.equal(collides([box('a.b')], 'a.b'), true, 'quoted names clash too');
+  assert.equal(collides([box('a')], 'b'), false);
+  assert.equal(collides([box('a'), box('b')], 'b'), true);
+  assert.equal(collides([], 'a'), false);
+});
+
+test('a block never collides with itself', () => {
+  const b = box('svc');
+  const list = [b, box('db')];
+  assert.equal(collides(list, 'svc', b), false, 'reordering in place must stay legal');
+  assert.equal(canMoveInto(b, list), true);
+});
+
+test('only boxes and groups can collide', () => {
+  const list = [{ type: 'link', src: 'a', arrow: '->', dst: 'b', label: '' }];
+  assert.equal(collides(list, 'a'), false);
+  assert.equal(canMoveInto(list[0], [box('a')]), true, 'links have no name to clash');
 });
 
 test('renaming a box repoints everything aimed at it', () => {

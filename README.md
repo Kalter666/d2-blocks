@@ -90,9 +90,10 @@ pipeline and no hit-testing geometry.
 - **No manual positioning.** d2 always auto-layouts — `top`/`left` exist only on
   the paid TALA engine — so you choose a direction and a layout engine, not
   coordinates. Every edit reflows the whole diagram.
-- **Two boxes with the same name in the same scope silently merge.** d2 treats a
-  repeated key as the same shape. New blocks get a free name, but renaming one
-  onto another collides.
+- **A duplicate name is flagged, not prevented.** d2 merges two boxes called
+  `auth` in the same scope into one shape. A drag that would cause that is
+  refused outright, but typing a clashing name only turns the field red — you
+  can't refuse a keystroke without making `authx` untypeable.
 - **Nesting is drag-only.** Arrow keys on a block's grip reorder it within its
   list; moving a block *into* a group needs a mouse.
 - **First load is heavy.** The d2 wasm is ~6 MB gzipped. If that becomes a
