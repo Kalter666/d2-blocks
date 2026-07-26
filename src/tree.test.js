@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import {
   moveInto, reorderIn, parentOf, wouldNest, keys, renameKey, serialize, collides, canMoveInto,
 } from './blocks.js';
-import { encode, decode } from './share.js';
 
 const box = (name) => ({ type: 'box', name, label: '', shape: '' });
 const group = (name, children) => ({ type: 'group', name, label: '', children });
@@ -180,14 +179,4 @@ test('renaming to the same key is a no-op', () => {
   assert.equal(renameKey(t, '', 'x'), false);
 });
 
-test('share links survive the round trip', async () => {
-  const src = 'direction: right\nDatabase: {shape: cylinder}\n"a.b" -> Database: héllo ✨\n';
-  const token = await encode(src);
-  assert.match(token, /^[A-Za-z0-9_-]+$/, 'token must be URL-safe and unpadded');
-  assert.equal(await decode(token), src);
-});
 
-test('a share link is meaningfully smaller than the source', async () => {
-  const src = 'x -> y\n'.repeat(200);
-  assert.ok((await encode(src)).length < src.length / 4);
-});

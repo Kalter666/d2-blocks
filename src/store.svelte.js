@@ -1,5 +1,4 @@
 import { empty, serialize, parse, remove, moveInto, reorderIn } from './blocks.js';
-import { encode, decode } from './share.js';
 
 export const app = $state({
   blocks: empty(),
@@ -79,15 +78,8 @@ export function save() {
   }));
 }
 
-export async function load() {
+export function load() {
   try {
-    const fromUrl = location.hash.slice(1);
-    if (fromUrl) {
-      try {
-        app.blocks = parse(await decode(fromUrl));
-        return;
-      } catch { app.error = 'That share link could not be read.'; }
-    }
     const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null');
     if (!saved) return;
     app.blocks = parse(saved.src);
@@ -102,6 +94,11 @@ export async function load() {
   }
 }
 
-export async function shareLink() {
-  return `${location.origin}${location.pathname}#${await encode(source())}`;
+/**
+ * Replace the whole tree from edited or pasted d2. The other direction of the
+ * same loop `source()` closes: blocks are still the truth for block edits, but
+ * text wins while the code pane has focus.
+ */
+export function setSource(text) {
+  app.blocks = parse(text);
 }

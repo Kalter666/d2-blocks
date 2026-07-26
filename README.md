@@ -16,7 +16,8 @@ blob nobody can review in a diff.
 This tries to be both. You assemble a stack of blocks — *box*, *group*,
 *connect*, *style* — and the d2 source is generated from it. Nobody has to type
 syntax, and what comes out is the same file a developer would have written by
-hand.
+hand. The source pane is editable too, so anyone who *does* know d2 can type or
+paste straight into it and watch the blocks rearrange themselves.
 
 ```
 ┌────────────────────────┐
@@ -67,9 +68,13 @@ block tree ──serialize()──> d2 ──compile()──> diagram ──rend
      └────────parse()────────┘
 ```
 
-The block tree is the source of truth while editing. `serialize` is total;
-`parse` is best-effort with a verbatim fallback, so the pair round-trips even
-when parsing fails completely.
+Both directions are live. Block edits reserialise the source; typing or pasting
+in the code pane reparses it into blocks. While the code pane has focus your text
+wins, so you aren't reformatted mid-word; on blur the canonical serialisation
+takes over, which doubles as format-on-blur.
+
+`serialize` is total; `parse` is best-effort with a verbatim fallback, so the
+pair round-trips even when parsing fails completely.
 
 d2 runs in a web worker via [`@terrastruct/d2`](https://www.npmjs.com/package/@terrastruct/d2)
 (stock, no fork). The canvas is the rendered SVG — hover linking works because
@@ -81,12 +86,9 @@ pipeline and no hit-testing geometry.
 | `src/blocks.js` | block schema, `serialize`, `parse`, tree moves — the core |
 | `src/store.svelte.js` | app state, undo history, persistence |
 | `src/d2.js` | compile + render, and the SVG ↔ id index |
-| `src/share.js` | URL codec (native `CompressionStream`) |
 
 ## Known limits
 
-- **The code pane is output, not input.** You can copy d2 out; you can't type it
-  in yet. Importing means pasting into a share link or `localStorage`.
 - **No manual positioning.** d2 always auto-layouts — `top`/`left` exist only on
   the paid TALA engine — so you choose a direction and a layout engine, not
   coordinates. Every edit reflows the whole diagram.

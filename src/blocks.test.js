@@ -120,6 +120,41 @@ test('unrecognised lines survive verbatim', () => {
   }
 });
 
+// The code pane is an input, so this is the guarantee paste rests on: a file
+// mixing things we model with things we don't comes back byte-for-byte.
+test('a pasted d2 file survives the editor untouched', () => {
+  const pasted = [
+    '# Architecture',
+    'vars: {',
+    '  d2-config: {',
+    '    theme-id: 4',
+    '  }',
+    '}',
+    'direction: right',
+    'Client: {shape: person}',
+    'Backend: The Backend {',
+    '  API',
+    '  Worker: Background worker',
+    '  API -> Worker: jobs',
+    '}',
+    'Client -> Backend.API: HTTPS',
+    'Backend.style.fill: "#eef"',
+  ].join('\n');
+
+  assert.equal(serialize(parse(pasted)), pasted);
+
+  // …and the parts we do model came through as real blocks, not raw fallbacks.
+  const blocks = parse(pasted);
+  assert.equal(blocks.filter((b) => b.type === 'raw').length, 1, 'only the comment');
+  const backend = blocks.find((b) => b.type === 'group' && b.name === 'Backend');
+  assert.equal(backend.label, 'The Backend');
+  assert.deepEqual(
+    backend.children.filter((b) => b.type === 'link').map((b) => [b.src, b.dst]),
+    [['Backend.API', 'Backend.Worker']],
+    'a nested link resolves to root-qualified keys',
+  );
+});
+
 test('a file we cannot scan is preserved whole', () => {
   const src = 'a: {\n  b\n'; // unbalanced
   const blocks = parse(src);

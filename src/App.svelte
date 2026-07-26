@@ -4,7 +4,7 @@
   import { draw } from './d2.js';
   import { keys } from './blocks.js';
   import {
-    app, source, add, undo, redo, canUndo, canRedo, save, load, shareLink,
+    app, source, add, undo, redo, canUndo, canRedo, save, load, setSource, commit,
   } from './store.svelte.js';
 
   const THEMES = [
@@ -20,6 +20,12 @@
   let toast = $state('');
   const src = $derived(source());
   const options = $derived(keys(app.blocks));
+
+  // While the code pane has focus, what you typed is the truth — otherwise every
+  // keystroke would be reparsed and reprinted back at you mid-word. On blur the
+  // draft is dropped and the canonical serialisation takes over, which doubles
+  // as format-on-blur.
+  let draft = $state(null);
 
   load();
 
@@ -73,13 +79,6 @@
     flash('d2 copied to clipboard');
   }
 
-  async function share() {
-    const url = await shareLink();
-    history.replaceState(null, '', url);
-    await navigator.clipboard.writeText(url);
-    flash('Share link copied');
-  }
-
   function downloadSvg() {
     const url = URL.createObjectURL(new Blob([app.svg], { type: 'image/svg+xml' }));
     Object.assign(document.createElement('a'), { href: url, download: 'diagram.svg' }).click();
@@ -128,8 +127,7 @@
   {#if app.busy}<span class="busy" aria-live="polite">drawing…</span>{/if}
 
   <button onclick={copyCode}>Copy d2</button>
-  <button onclick={downloadSvg}>Download SVG</button>
-  <button class="primary" onclick={share}>Share</button>
+  <button class="primary" onclick={downloadSvg}>Download SVG</button>
 </header>
 
 <main>
@@ -151,9 +149,21 @@
 <footer class:open={showCode}>
   <button class="drawer" onclick={() => (showCode = !showCode)} aria-expanded={showCode}>
     <span class="chevron" class:up={showCode}>▾</span> d2 source
-    <span class="note">this is what you share — read-only for now</span>
+    <span class="note">edit or paste — the blocks follow</span>
   </button>
-  {#if showCode}<pre>{src}</pre>{/if}
+  {#if showCode}
+    <textarea
+      class="code"
+      spellcheck="false"
+      autocapitalize="off"
+      autocorrect="off"
+      aria-label="d2 source"
+      value={draft ?? src}
+      onfocus={() => { commit(); draft = src; }}
+      oninput={(e) => setSource((draft = e.currentTarget.value))}
+      onblur={() => (draft = null)}
+    ></textarea>
+  {/if}
 </footer>
 
 {#if toast}<div class="toast" role="status">{toast}</div>{/if}
@@ -242,13 +252,22 @@
   .chevron.up { transform: rotate(180deg); }
   .note { font-weight: 400; color: var(--muted); }
 
-  pre {
-    margin: 0; padding: 0 14px 12px;
-    overflow: auto;
-    font-family: var(--mono); font-size: 12px; line-height: 1.55;
+  .code {
+    flex: 1;
+    margin: 0 14px 12px;
+    padding: 8px 10px;
+    min-block-size: 7rem;
+    resize: none;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: var(--bg);
     color: var(--fg);
+    font-family: var(--mono); font-size: 12px; line-height: 1.55;
     tab-size: 2;
+    white-space: pre;
+    overflow: auto;
   }
+  .code:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
 
   .toast {
     position: fixed; inset-block-end: 20px; inset-inline-start: 50%;
