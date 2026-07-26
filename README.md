@@ -3,6 +3,8 @@
 Build diagrams by stacking blocks. Get clean [d2](https://d2lang.com) source you
 can put in a pull request.
 
+**→ [kalter666.github.io/d2-blocks](https://kalter666.github.io/d2-blocks/)**
+
 Runs entirely in the browser — no server, no accounts. Deploys to GitHub Pages
 as a static site.
 
@@ -104,3 +106,13 @@ pipeline and no hit-testing geometry.
 - `parse` is a line scanner, not a d2 parser. It's exact on files this editor
   wrote and non-destructive on files it didn't, but a d2 keyword block like
   `vars: { … }` shows up as an ordinary group.
+
+## Licence
+
+[MIT](LICENSE).
+
+The build inlines [d2](https://github.com/terrastruct/d2), which is
+[MPL-2.0](https://github.com/terrastruct/d2/blob/master/LICENSE.txt). MPL is
+file-level copyleft and explicitly allows distribution inside a larger work
+under other terms, so this project stays MIT — but d2's own files remain MPL
+wherever they end up, including in the bundle served from Pages.

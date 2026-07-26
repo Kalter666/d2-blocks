@@ -1,6 +1,13 @@
 {
   "name": "d2-blocks",
   "private": true,
+  "description": "Build diagrams by stacking blocks, get clean d2 source.",
+  "license": "MIT",
+  "homepage": "https://kalter666.github.io/d2-blocks/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kalter666/d2-blocks.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
