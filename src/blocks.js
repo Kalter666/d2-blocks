@@ -35,7 +35,30 @@ export { q as safeKey };
 // Labels are freer than names, but `#` opens a comment and braces open a map.
 const qLabel = (s) => (/[#{}|;\n]/.test(s) || s !== s.trim() ? JSON.stringify(s) : s);
 
-function line(b) {
+/**
+ * Blocks store root-qualified keys (that's what the dropdowns offer and what the
+ * canvas matches on), but d2 resolves a key against the map it is written in. A
+ * link inside `AUTH` that says `AUTH.db` means `AUTH.AUTH.db` — a phantom group.
+ * So rewrite the key relative to the scope it's being emitted into, using d2's
+ * `_` parent reference to climb back out when the target lives elsewhere.
+ */
+export function relativize(key, scope) {
+  for (let i = scope.length; i > 0; i--) {
+    const prefix = scope.slice(0, i).join('.');
+    if (key.startsWith(`${prefix}.`)) return '_.'.repeat(scope.length - i) + key.slice(prefix.length + 1);
+  }
+  return '_.'.repeat(scope.length) + key;
+}
+
+/** The inverse: what a scoped key in the source refers to from the root. */
+export function absolutize(key, scope) {
+  const path = [...scope];
+  let rest = key;
+  while (rest.startsWith('_.')) { path.pop(); rest = rest.slice(2); }
+  return [...path, rest].join('.');
+}
+
+function line(b, scope) {
   switch (b.type) {
     case 'direction':
       return `direction: ${b.value}`;
@@ -44,17 +67,17 @@ function line(b) {
       return b.shape ? `${head}${b.label ? ' ' : ': '}{shape: ${b.shape}}` : head;
     }
     case 'link': {
-      const conn = `${b.src} ${b.arrow} ${b.dst}`;
+      const conn = `${relativize(b.src, scope)} ${b.arrow} ${relativize(b.dst, scope)}`;
       return b.label ? `${conn}: ${qLabel(b.label)}` : conn;
     }
     case 'style':
-      return `${b.target}.style.${b.prop}: ${qLabel(b.value)}`;
+      return `${relativize(b.target, scope)}.style.${b.prop}: ${qLabel(b.value)}`;
     default:
       return '';
   }
 }
 
-export function serialize(blocks, depth = 0) {
+export function serialize(blocks, depth = 0, scope = []) {
   const pad = '  '.repeat(depth);
   const out = [];
   for (const b of blocks) {
@@ -65,10 +88,10 @@ export function serialize(blocks, depth = 0) {
       // the brace gets swallowed into the label ("Label:").
       const head = b.label ? `${q(b.name)}: ${qLabel(b.label)} ` : `${q(b.name)}: `;
       out.push(`${pad}${head}{`);
-      if (b.children.length) out.push(serialize(b.children, depth + 1));
+      if (b.children.length) out.push(serialize(b.children, depth + 1, [...scope, q(b.name)]));
       out.push(`${pad}}`);
     } else {
-      out.push(pad + line(b));
+      out.push(pad + line(b, scope));
     }
   }
   return out.join('\n');
@@ -99,7 +122,7 @@ const RE = {
   bare: /^[A-Za-z_][\w -]*$/,
 };
 
-function parseLine(text) {
+function parseLine(text, scope) {
   const t = text.trim();
   if (!t) return null;
 
@@ -108,13 +131,21 @@ function parseLine(text) {
   // a connection or a path — so it has to be checked before either of those.
   if (RE.quoted.test(t)) return { type: 'box', name: unq(t), label: '', shape: '' };
   if ((m = RE.direction.exec(t))) return { type: 'direction', value: m[1] };
-  if ((m = RE.style.exec(t))) return { type: 'style', target: m[1], prop: m[2], value: unq(m[3]) };
+  if ((m = RE.style.exec(t))) {
+    return { type: 'style', target: absolutize(m[1], scope), prop: m[2], value: unq(m[3]) };
+  }
   if ((m = RE.boxShape.exec(t))) {
     return { type: 'box', name: unq(m[1]), label: m[2] ? unq(m[2]) : '', shape: m[3] };
   }
   // A link's src/dst are keys, not free text — bail out if they look like prose.
   if ((m = RE.link.exec(t)) && !m[1].includes(':')) {
-    return { type: 'link', src: m[1].trim(), arrow: m[2], dst: m[3].trim(), label: m[4] ? unq(m[4]) : '' };
+    return {
+      type: 'link',
+      src: absolutize(m[1].trim(), scope),
+      arrow: m[2],
+      dst: absolutize(m[3].trim(), scope),
+      label: m[4] ? unq(m[4]) : '',
+    };
   }
   if ((m = RE.labelled.exec(t))) return { type: 'box', name: unq(m[1]), label: unq(m[2]), shape: '' };
   if (RE.bare.test(t)) return { type: 'box', name: t, label: '', shape: '' };
@@ -126,13 +157,14 @@ export function parse(src) {
   if (lines.at(-1) === '') lines.pop(); // trailing newline is not a blank line
   const root = [];
   const stack = [root];
+  const scope = []; // enclosing group keys, to resolve links back to root keys
   const top = () => stack.at(-1);
 
   for (const text of lines) {
     const t = text.trim();
     const raw = { type: 'raw', text };
 
-    if (t === '}' && stack.length > 1) { stack.pop(); continue; }
+    if (t === '}' && stack.length > 1) { stack.pop(); scope.pop(); continue; }
 
     // Ends in `{`, so an inline map (`x: {shape: y}`) can't reach here. A
     // connection with a map body isn't something we emit — leave it to raw.
@@ -141,10 +173,11 @@ export function parse(src) {
       const group = { type: 'group', name: unq(g[1]), label: g[2] ? unq(g[2]) : '', children: [] };
       top().push(group);
       stack.push(group.children);
+      scope.push(q(group.name));
       continue;
     }
 
-    top().push(parseLine(text) ?? raw);
+    top().push(parseLine(text, scope) ?? raw);
   }
 
   // Unbalanced braces mean the scanner lost the plot. Refuse to guess: hand the

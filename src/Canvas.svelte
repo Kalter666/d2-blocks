@@ -31,10 +31,23 @@
     app.hover = null;
   }
 
+  const MIN = 0.1, MAX = 16;
+  const clamp = (z) => Math.min(MAX, Math.max(MIN, z));
+
   function onWheel(e) {
     if (!e.ctrlKey && !e.metaKey) return; // plain wheel still scrolls
     e.preventDefault();
-    zoom = Math.min(4, Math.max(0.2, zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12)));
+    zoom = clamp(zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12));
+  }
+
+  /** Scale so the whole diagram fits the viewport — the useful "reset". */
+  function fit() {
+    const svg = host?.querySelector('svg');
+    if (!svg) return (zoom = 1);
+    const { width, height } = svg.getBoundingClientRect();
+    const box = view.getBoundingClientRect();
+    if (!width || !height) return (zoom = 1);
+    zoom = clamp(Math.min((box.width - 40) / (width / zoom), (box.height - 40) / (height / zoom)));
   }
 
   // Drag to pan, but not when starting on a shape — that's a hover target.
@@ -77,9 +90,10 @@
   {/if}
 
   <div class="zoom">
-    <button onclick={() => (zoom = Math.max(0.2, zoom / 1.25))} title="Zoom out">−</button>
-    <button class="level" onclick={() => (zoom = 1)} title="Reset zoom">{Math.round(zoom * 100)}%</button>
-    <button onclick={() => (zoom = Math.min(4, zoom * 1.25))} title="Zoom in">+</button>
+    <button onclick={() => (zoom = clamp(zoom / 1.25))} disabled={zoom <= MIN} title="Zoom out">−</button>
+    <button class="level" onclick={() => (zoom = 1)} title="Reset to 100%">{Math.round(zoom * 100)}%</button>
+    <button onclick={() => (zoom = clamp(zoom * 1.25))} disabled={zoom >= MAX} title="Zoom in">+</button>
+    <button onclick={fit} title="Fit to window">⤢</button>
   </div>
 </div>
 
@@ -124,6 +138,7 @@
     border: 0; background: var(--surface); color: var(--fg);
     font: inherit; font-size: 13px; padding: 3px 9px; cursor: pointer;
   }
-  .zoom button:hover { background: var(--bg); }
+  .zoom button:hover:not(:disabled) { background: var(--bg); }
+  .zoom button:disabled { opacity: 0.4; cursor: default; }
   .level { font-variant-numeric: tabular-nums; min-inline-size: 46px; }
 </style>

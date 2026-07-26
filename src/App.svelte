@@ -9,8 +9,12 @@
 
   const THEMES = [
     [0, 'Neutral'], [1, 'Grey'], [3, 'Terrastruct'], [4, 'Cool classics'],
-    [5, 'Mixed berry'], [6, 'Grape soda'], [8, 'Colourblind clear'], [300, 'Dark mauve'],
+    [5, 'Mixed berry'], [6, 'Grape soda'], [7, 'Aubergine'], [8, 'Colourblind clear'],
+    [100, 'Vanilla nitro'], [302, 'Origami'], [300, 'Terminal'],
   ];
+  // d2 emits both and picks via prefers-color-scheme, so the diagram follows the
+  // OS theme like the rest of the app. Otherwise it's a white slab in dark mode.
+  const DARK_THEMES = [[200, 'Dark mauve'], [201, 'Dark Terrastruct'], [301, 'Terminal grey']];
 
   let showCode = $state(true);
   let toast = $state('');
@@ -23,12 +27,13 @@
   // a newer render has already started.
   let token = 0;
   $effect(() => {
-    const [text, layout, themeID, sketch] = [src, app.layout, app.theme, app.sketch];
+    const [text, layout, themeID, darkThemeID, sketch] =
+      [src, app.layout, app.theme, app.darkTheme, app.sketch];
     const mine = ++token;
     app.busy = true;
     const timer = setTimeout(async () => {
       try {
-        const { svg, diagram } = await draw(text, { layout, themeID, sketch });
+        const { svg, diagram } = await draw(text, { layout, themeID, darkThemeID, sketch });
         if (mine !== token) return;
         Object.assign(app, { svg, diagram, error: '' });
       } catch (e) {
@@ -108,6 +113,12 @@
   <label>theme
     <select bind:value={app.theme}>
       {#each THEMES as [id, name]}<option value={id}>{name}</option>{/each}
+    </select>
+  </label>
+
+  <label>dark
+    <select bind:value={app.darkTheme}>
+      {#each DARK_THEMES as [id, name]}<option value={id}>{name}</option>{/each}
     </select>
   </label>
 

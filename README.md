@@ -90,6 +90,9 @@ pipeline and no hit-testing geometry.
 - **No manual positioning.** d2 always auto-layouts — `top`/`left` exist only on
   the paid TALA engine — so you choose a direction and a layout engine, not
   coordinates. Every edit reflows the whole diagram.
+- **Renaming a box does not update the blocks pointing at it.** A connect or
+  style block holds the old key and the diagram grows a phantom box. Rename
+  before you wire things up.
 - **Nesting is drag-only.** Arrow keys on a block's grip reorder it within its
   list; moving a block *into* a group needs a mouse.
 - **First load is heavy.** The d2 wasm is ~6 MB gzipped. If that becomes a

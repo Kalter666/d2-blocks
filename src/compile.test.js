@@ -54,6 +54,39 @@ test('awkward names connect instead of nesting', async () => {
   assert.equal(diagram.connections[0].label, 'hi');
 });
 
+test('a connection inside a group does not spawn a phantom group', async () => {
+  // The bug: blocks hold root-qualified keys, but d2 resolves a key against the
+  // map it is written in, so `AUTH.svc` inside AUTH meant AUTH.AUTH.svc.
+  const tree = [
+    { type: 'direction', value: 'right' },
+    { type: 'group', name: 'AUTH', label: '', children: [
+      { type: 'box', name: 'auth service', label: '', shape: 'rectangle' },
+      { type: 'box', name: 'auth db', label: '', shape: '' },
+      { type: 'link', src: 'AUTH.auth service', arrow: '->', dst: 'AUTH.auth db', label: '' },
+    ] },
+  ];
+  const { diagram } = await compile(tree);
+  assert.deepEqual(diagram.shapes.map((s) => s.id).sort(),
+    ['AUTH', 'AUTH.auth db', 'AUTH.auth service']);
+  assert.equal(diagram.connections.length, 1);
+  assert.equal(diagram.connections[0].src, 'AUTH.auth service');
+  assert.equal(diagram.connections[0].dst, 'AUTH.auth db');
+});
+
+test('a connection inside a group can reach a box outside it', async () => {
+  const tree = [
+    { type: 'box', name: 'Gateway', label: '', shape: '' },
+    { type: 'group', name: 'AUTH', label: '', children: [
+      { type: 'box', name: 'svc', label: '', shape: '' },
+      { type: 'link', src: 'AUTH.svc', arrow: '->', dst: 'Gateway', label: '' },
+    ] },
+  ];
+  const { diagram } = await compile(tree);
+  assert.deepEqual(diagram.shapes.map((s) => s.id).sort(), ['AUTH', 'AUTH.svc', 'Gateway']);
+  assert.deepEqual(
+    diagram.connections.map((c) => [c.src, c.dst]), [['AUTH.svc', 'Gateway']]);
+});
+
 test('styles apply to the shape they name', async () => {
   const { diagram } = await compile([
     { type: 'box', name: 'x', label: '', shape: '' },

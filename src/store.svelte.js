@@ -5,6 +5,7 @@ export const app = $state({
   blocks: empty(),
   layout: 'dagre',
   theme: 0,
+  darkTheme: 200,
   sketch: false,
   hover: null,   // d2 id of the shape/connection under the pointer, either side
   dragging: null,
@@ -74,7 +75,7 @@ let loaded = false; // until load() settles, autosave would overwrite the save
 export function save() {
   if (!loaded) return;
   localStorage.setItem(KEY, JSON.stringify({
-    src: source(), layout: app.layout, theme: app.theme, sketch: app.sketch,
+    src: source(), layout: app.layout, theme: app.theme, darkTheme: app.darkTheme, sketch: app.sketch,
   }));
 }
 
@@ -92,6 +93,7 @@ export async function load() {
     app.blocks = parse(saved.src);
     app.layout = saved.layout ?? app.layout;
     app.theme = saved.theme ?? app.theme;
+    app.darkTheme = saved.darkTheme ?? app.darkTheme;
     app.sketch = saved.sketch ?? app.sketch;
   } catch {
     /* corrupt save, start fresh */

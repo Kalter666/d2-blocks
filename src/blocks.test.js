@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { serialize, parse, keys, remove } from './blocks.js';
+import { serialize, parse, keys, remove, relativize, absolutize } from './blocks.js';
 
 const tree = [
   { type: 'direction', value: 'right' },
@@ -54,6 +54,50 @@ test('names that would change meaning get quoted', () => {
   for (const name of ['a.b', 'a -> b', 'a: b', 'a#b', '', ' a']) {
     const t = [{ type: 'box', name, label: '', shape: '' }];
     assert.deepEqual(parse(serialize(t)), t, `failed for ${JSON.stringify(name)}`);
+  }
+});
+
+// Blocks hold root-qualified keys; d2 resolves them against the enclosing map.
+// A link written inside AUTH saying `AUTH.db` would mean AUTH.AUTH.db.
+test('a link inside a group is written relative to that group', () => {
+  const t = [
+    { type: 'group', name: 'AUTH', label: '', children: [
+      { type: 'box', name: 'auth service', label: '', shape: 'rectangle' },
+      { type: 'box', name: 'auth db', label: '', shape: '' },
+      { type: 'link', src: 'AUTH.auth service', arrow: '->', dst: 'AUTH.auth db', label: '' },
+      { type: 'style', target: 'AUTH.auth db', prop: 'fill', value: '#eee' },
+    ] },
+  ];
+  assert.equal(serialize(t), [
+    'AUTH: {',
+    '  auth service: {shape: rectangle}',
+    '  auth db',
+    '  auth service -> auth db',
+    '  auth db.style.fill: "#eee"',
+    '}',
+  ].join('\n'));
+  assert.deepEqual(parse(serialize(t)), t);
+});
+
+test('a link inside a group can still reach outside it', () => {
+  const t = [
+    { type: 'box', name: 'Gateway', label: '', shape: '' },
+    { type: 'group', name: 'AUTH', label: '', children: [
+      { type: 'box', name: 'svc', label: '', shape: '' },
+      { type: 'link', src: 'AUTH.svc', arrow: '->', dst: 'Gateway', label: '' },
+    ] },
+  ];
+  assert.match(serialize(t), /^ {2}svc -> _\.Gateway$/m, 'needs d2’s parent reference');
+  assert.deepEqual(parse(serialize(t)), t);
+});
+
+test('relative keys climb out of deep nesting', () => {
+  assert.equal(relativize('A.B.x', ['A', 'B']), 'x');
+  assert.equal(relativize('A.C', ['A', 'B']), '_.C');
+  assert.equal(relativize('Z', ['A', 'B']), '_._.Z');
+  assert.equal(relativize('A', ['A', 'B']), '_._.A', 'the group itself, from inside');
+  for (const [key, scope] of [['A.B.x', ['A', 'B']], ['A.C', ['A', 'B']], ['Z', ['A', 'B']], ['A', ['A']]]) {
+    assert.equal(absolutize(relativize(key, scope), scope), key, `${key} in ${scope}`);
   }
 });
 
