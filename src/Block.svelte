@@ -63,6 +63,9 @@
   }
 
   function onDragStart(e) {
+    // dragstart bubbles, and every ancestor group is draggable too — without
+    // this, grabbing a nested box ends up dragging the outermost group instead.
+    e.stopPropagation();
     app.dragging = block;
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', ''); // Firefox won't drag without it

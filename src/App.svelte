@@ -62,11 +62,6 @@
 
   const addBox = () => add({ type: 'box', name: freeName('box'), label: '', shape: '' });
   const addGroup = () => add({ type: 'group', name: freeName('group'), label: '', children: [] });
-  // Starter content, because d2 rejects an empty block string — and because a
-  // toggle buried on a box row is not something anyone would go looking for.
-  const addNote = () => add({
-    type: 'box', name: freeName('note'), label: '# Note', shape: '', md: true,
-  });
   const addLink = () => add({
     type: 'link', arrow: '->', label: '',
     src: options[0]?.key ?? '', dst: options[1]?.key ?? options[0]?.key ?? '',
@@ -139,12 +134,11 @@
 <main>
   <section class="editor">
     <div class="scroll">
-      <Stack list={app.blocks} />
+      <Stack list={app.blocks} root />
     </div>
     <div class="palette">
       <button class="add box" onclick={addBox}>+ box</button>
       <button class="add group" onclick={addGroup}>+ group</button>
-      <button class="add note" onclick={addNote}>+ note</button>
       <button class="add link" onclick={addLink} disabled={!options.length}>+ connect</button>
       <button class="add style" onclick={addStyle} disabled={!options.length}>+ style</button>
     </div>
@@ -233,7 +227,7 @@
     background: var(--surface);
     border-inline-end: 1px solid var(--line);
   }
-  .scroll { flex: 1; overflow: auto; padding: 12px; }
+  .scroll { flex: 1; overflow: auto; padding: 12px; display: flex; flex-direction: column; }
 
   .palette {
     display: flex; gap: 6px; flex-wrap: wrap;
@@ -248,7 +242,6 @@
   .add:disabled { opacity: 0.35; cursor: default; }
   .add.box   { background: #3b82f6; }
   .add.group { background: #8b5cf6; }
-  .add.note  { background: #0ea5e9; }
   .add.link  { background: #f59e0b; }
   .add.style { background: #ec4899; }
 

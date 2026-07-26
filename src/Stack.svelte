@@ -3,7 +3,10 @@
   import { app, move } from './store.svelte.js';
   import { canMoveInto } from './blocks.js';
 
-  let { list, path = '' } = $props();
+  // `root` makes this stack fill the scroll area. Without it the empty space
+  // below the last block belongs to the container, which has no drop handlers —
+  // so there'd be nowhere to aim when dragging a block back out of a group.
+  let { list, path = '', root = false } = $props();
 
   let el = $state(null);
   let at = $state(-1);          // insertion index the indicator is showing, -1 for none
@@ -46,6 +49,7 @@
   bind:this={el}
   class="stack"
   role="list"
+  class:root
   class:empty={list.length === 0}
   class:receiving={at >= 0}
   class:blocked={blocked && hovering}
@@ -70,6 +74,7 @@
     border-radius: 8px;
   }
   .stack.empty { min-block-size: 34px; }
+  .stack.root { flex: 1; }
   .receiving { background: color-mix(in oklab, var(--accent) 8%, transparent); }
   .blocked {
     background: color-mix(in oklab, #dc2626 10%, transparent);

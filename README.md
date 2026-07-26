@@ -16,7 +16,7 @@ phantom box instead of erroring. Visual tools avoid that but hand you a binary
 blob nobody can review in a diff.
 
 This tries to be both. You assemble a stack of blocks — *box*, *group*,
-*connect*, *style*, *note* — and the d2 source is generated from it. Nobody has to type
+*connect*, *style* — and the d2 source is generated from it. Nobody has to type
 syntax, and what comes out is the same file a developer would have written by
 hand. The source pane is editable too, so anyone who *does* know d2 can type or
 paste straight into it and watch the blocks rearrange themselves.
@@ -45,9 +45,10 @@ Two things fall out of blocks mapping 1:1 onto d2 statements:
 ## Rich text
 
 d2 labels can be markdown, which is what turns a diagram into something readable
-rather than a grid of captions. Hit `+ note`, or `¶` on any box, and the label
-becomes a small WYSIWYG editor — headings, bold, italic, code, links, lists —
-that writes an ordinary block string:
+rather than a grid of captions. It isn't a separate kind of block — hit `¶` on
+any box and its label becomes a small WYSIWYG editor (headings, bold, italic,
+code, links, lists) writing an ordinary block string. The box keeps its shape,
+so a cylinder or an oval holds rich text just as well as a plain rectangle:
 
 ```
 Notes: |md
@@ -122,8 +123,9 @@ pipeline and no hit-testing geometry.
   default and both ends of every range, so a drifting bound fails CI.
 - **Rich text is a box, not a group.** A markdown label on a group turns it into
   a text shape and orphans its children — verified against the compiler — so the
-  `¶` toggle is only offered on boxes. A box with markdown and no shape renders
-  borderless; pick a shape to get the box back.
+  `¶` toggle is only offered on boxes. All 18 shapes hold markdown fine; leaving
+  the shape unset is the one case d2 renders borderless, which is why the
+  dropdown calls that option *text* once rich text is on.
 - **A duplicate name is flagged, not prevented.** d2 merges two boxes called
   `auth` in the same scope into one shape. A drag that would cause that is
   refused outright, but typing a clashing name only turns the field red — you
