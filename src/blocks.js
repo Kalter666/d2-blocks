@@ -13,10 +13,37 @@ export const SHAPES = [
   'queue', 'package', 'step', 'callout', 'stored_data', 'person', 'diamond',
   'oval', 'circle', 'hexagon', 'cloud',
 ];
-export const STYLE_PROPS = [
-  'fill', 'stroke', 'stroke-width', 'stroke-dash', 'border-radius', 'opacity',
-  'font-size', 'font-color', 'bold', 'italic', 'shadow', '3d', 'multiple',
-];
+/**
+ * Every style property d2 accepts, with the editor it needs and a default that
+ * actually validates. Ranges are d2's own (`d2graph.go`), not guesses — feeding
+ * a colour to `stroke-dash` is a compile error, so the picker has to change
+ * with the property rather than always offering a swatch.
+ */
+export const STYLE_PROPS = {
+  fill: { kind: 'color', value: '#c9d6ff' },
+  stroke: { kind: 'color', value: '#3a5bd9' },
+  'font-color': { kind: 'color', value: '#0f172a' },
+  'stroke-width': { kind: 'number', value: '2', min: 0, max: 15, step: 1 },
+  'stroke-dash': { kind: 'number', value: '3', min: 0, max: 10, step: 1 },
+  // d2 only requires >= 0 here, so no max: inventing one blocks valid values.
+  'border-radius': { kind: 'number', value: '8', min: 0, max: null, step: 1 },
+  opacity: { kind: 'number', value: '0.8', min: 0, max: 1, step: 0.1 },
+  'font-size': { kind: 'number', value: '16', min: 8, max: 100, step: 1 },
+  'fill-pattern': { kind: 'enum', value: 'dots', options: ['none', 'dots', 'lines', 'grain', 'paper'] },
+  'text-transform': { kind: 'enum', value: 'uppercase', options: ['none', 'uppercase', 'lowercase', 'capitalize'] },
+  bold: { kind: 'bool', value: 'true' },
+  italic: { kind: 'bool', value: 'true' },
+  underline: { kind: 'bool', value: 'true' },
+  shadow: { kind: 'bool', value: 'true' },
+  '3d': { kind: 'bool', value: 'true' },
+  multiple: { kind: 'bool', value: 'true' },
+  'double-border': { kind: 'bool', value: 'true' },
+  filled: { kind: 'bool', value: 'true' },
+  animated: { kind: 'bool', value: 'true' },
+};
+
+/** A value that validates for `prop` — used when a style block switches property. */
+export const defaultStyle = (prop) => STYLE_PROPS[prop]?.value ?? '';
 export const DIRECTIONS = ['up', 'down', 'right', 'left'];
 
 export const empty = () => [{ type: 'direction', value: 'right' }];

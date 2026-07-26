@@ -1,7 +1,10 @@
 <script>
   import Stack from './Stack.svelte';
   import { app, commit, del, reorder } from './store.svelte.js';
-  import { keys, safeKey, renameKey, collides, SHAPES, STYLE_PROPS, DIRECTIONS, ARROWS } from './blocks.js';
+  import {
+    keys, safeKey, renameKey, collides, defaultStyle,
+    SHAPES, STYLE_PROPS, DIRECTIONS, ARROWS,
+  } from './blocks.js';
 
   let { block, path = '', siblings = [] } = $props();
 
@@ -38,6 +41,15 @@
     const from = path + safeKey(block.name);
     block.name = next;
     renameKey(app.blocks, from, path + safeKey(next));
+  }
+
+  const spec = $derived(STYLE_PROPS[block.prop] ?? {});
+
+  // Switching property carries the old value across, which is how you end up
+  // asking d2 for `stroke-dash: "#c9d6ff"`. Reset to something that validates.
+  function setProp(next) {
+    block.prop = next;
+    block.value = defaultStyle(next);
   }
 
   function onDragStart(e) {
@@ -107,12 +119,31 @@
       <select class="slot" bind:value={block.target} onfocus={commit}>
         {#each options as o}<option value={o.key}>{' '.repeat(o.depth * 2) + o.name}</option>{/each}
       </select>
-      <select class="slot" bind:value={block.prop} onfocus={commit}>
-        {#each STYLE_PROPS as p}<option value={p}>{p}</option>{/each}
+      <select class="slot" value={block.prop} onchange={(e) => setProp(e.currentTarget.value)} onfocus={commit}>
+        {#each Object.keys(STYLE_PROPS) as p}<option value={p}>{p}</option>{/each}
       </select>
-      <input class="slot" bind:value={block.value} onfocus={commit} placeholder="value" size="9" />
-      {#if block.prop === 'fill' || block.prop === 'stroke' || block.prop === 'font-color'}
-        <input class="swatch" type="color" bind:value={block.value} onfocus={commit} aria-label="pick a colour" />
+
+      {#if spec.kind === 'color'}
+        <input class="swatch" type="color" bind:value={block.value} onfocus={commit} aria-label="{block.prop} colour" />
+        <input class="slot hex" bind:value={block.value} onfocus={commit} placeholder="#rrggbb" size="8" />
+      {:else if spec.kind === 'number'}
+        <input
+          class="slot num" type="number" bind:value={block.value} onfocus={commit}
+          min={spec.min} max={spec.max ?? undefined} step={spec.step} aria-label={block.prop}
+        />
+        <span class="verb dim">{spec.max == null ? `${spec.min} or more` : `${spec.min}–${spec.max}`}</span>
+      {:else if spec.kind === 'bool'}
+        <label class="bool">
+          <input type="checkbox" checked={block.value === 'true'} onfocus={commit}
+            onchange={(e) => (block.value = String(e.currentTarget.checked))} />
+          {block.value === 'true' ? 'yes' : 'no'}
+        </label>
+      {:else if spec.kind === 'enum'}
+        <select class="slot" bind:value={block.value} onfocus={commit}>
+          {#each spec.options as o}<option value={o}>{o}</option>{/each}
+        </select>
+      {:else}
+        <input class="slot" bind:value={block.value} onfocus={commit} placeholder="value" size="9" />
       {/if}
 
     {:else if block.type === 'direction'}
@@ -206,8 +237,16 @@
   .arrow { font-family: var(--mono); }
 
   .swatch {
-    inline-size: 24px; block-size: 22px; padding: 0;
-    border: 1px solid var(--line); border-radius: 5px; background: none;
+    inline-size: 30px; block-size: 24px; padding: 2px;
+    border: 1px solid var(--line); border-radius: 5px; background: var(--bg);
+    cursor: pointer;
+  }
+  .hex { font-family: var(--mono); }
+  .num { inline-size: 4.5rem; }
+
+  .bool {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 12px; color: var(--muted); cursor: pointer;
   }
 
   .raw-text {

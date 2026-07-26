@@ -4,7 +4,7 @@
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { D2 } from '@terrastruct/d2';
-import { serialize, keys } from './blocks.js';
+import { serialize, keys, STYLE_PROPS, defaultStyle } from './blocks.js';
 
 // The d2 worker holds the event loop open, hence --test-force-exit in the
 // npm script. Don't exit from an after() hook — it swallows late failures.
@@ -94,6 +94,45 @@ test('styles apply to the shape they name', async () => {
   ]);
   assert.equal(diagram.shapes.length, 1, '"#c9d6ff" was probably read as a comment');
   assert.equal(diagram.shapes[0].fill, '#c9d6ff');
+});
+
+// The bug this guards: the value carried over when you switched property, so
+// picking stroke-dash while holding a colour asked d2 for `stroke-dash: #c9d6ff`.
+test('every style property default actually validates', async () => {
+  for (const prop of Object.keys(STYLE_PROPS)) {
+    const tree = [
+      { type: 'box', name: 'x', label: '', shape: '' },
+      { type: 'style', target: 'x', prop, value: defaultStyle(prop) },
+    ];
+    await assert.doesNotReject(compile(tree), `${prop}: ${defaultStyle(prop)}`);
+  }
+});
+
+test('style range bounds match what d2 will accept', async () => {
+  const numeric = Object.entries(STYLE_PROPS).filter(([, s]) => s.kind === 'number');
+  assert.ok(numeric.length, 'expected some numeric properties');
+
+  for (const [prop, spec] of numeric) {
+    const box = { type: 'box', name: 'x', label: '', shape: '' };
+    const at = (value) => compile([box, { type: 'style', target: 'x', prop, value: String(value) }]);
+
+    await assert.doesNotReject(at(spec.min), `${prop} min ${spec.min}`);
+    if (spec.max == null) continue; // d2 imposes no ceiling; don't invent one
+
+    await assert.doesNotReject(at(spec.max), `${prop} max ${spec.max}`);
+    // Just past the top must fail, or our max is stricter than d2's for no reason.
+    await assert.rejects(at(spec.max + (spec.step ?? 1)), `${prop} should reject > ${spec.max}`);
+  }
+});
+
+test('enum options are exactly what d2 allows', async () => {
+  for (const [prop, spec] of Object.entries(STYLE_PROPS).filter(([, s]) => s.kind === 'enum')) {
+    for (const value of spec.options) {
+      await assert.doesNotReject(
+        compile([{ type: 'box', name: 'x', label: '', shape: '' },
+          { type: 'style', target: 'x', prop, value }]), `${prop}: ${value}`);
+    }
+  }
 });
 
 test('rendered SVG tags every shape with its id, so the canvas can link back', async () => {

@@ -94,6 +94,10 @@ pipeline and no hit-testing geometry.
 - **No manual positioning.** d2 always auto-layouts — `top`/`left` exist only on
   the paid TALA engine — so you choose a direction and a layout engine, not
   coordinates. Every edit reflows the whole diagram.
+- **Style values are constrained to what d2 accepts.** Each property carries its
+  own editor and range (colour picker, bounded number, checkbox, enum), taken
+  from d2's own validation rather than guessed. `npm test` compiles every
+  default and both ends of every range, so a drifting bound fails CI.
 - **A duplicate name is flagged, not prevented.** d2 merges two boxes called
   `auth` in the same scope into one shape. A drag that would cause that is
   refused outright, but typing a clashing name only turns the field red — you

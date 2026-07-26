@@ -2,7 +2,7 @@
   import Stack from './Stack.svelte';
   import Canvas from './Canvas.svelte';
   import { draw } from './d2.js';
-  import { keys } from './blocks.js';
+  import { keys, defaultStyle } from './blocks.js';
   import {
     app, source, add, undo, redo, canUndo, canRedo, save, load, setSource, commit,
   } from './store.svelte.js';
@@ -15,6 +15,7 @@
   // d2 emits both and picks via prefers-color-scheme, so the diagram follows the
   // OS theme like the rest of the app. Otherwise it's a white slab in dark mode.
   const DARK_THEMES = [[200, 'Dark mauve'], [201, 'Dark Terrastruct'], [301, 'Terminal grey']];
+  const REPO = 'https://github.com/Kalter666/d2-blocks';
 
   let showCode = $state(true);
   let toast = $state('');
@@ -66,7 +67,7 @@
     src: options[0]?.key ?? '', dst: options[1]?.key ?? options[0]?.key ?? '',
   });
   const addStyle = () => add({
-    type: 'style', target: options[0]?.key ?? '', prop: 'fill', value: '#c9d6ff',
+    type: 'style', target: options[0]?.key ?? '', prop: 'fill', value: defaultStyle('fill'),
   });
 
   function flash(msg) {
@@ -147,10 +148,14 @@
 </main>
 
 <footer class:open={showCode}>
-  <button class="drawer" onclick={() => (showCode = !showCode)} aria-expanded={showCode}>
-    <span class="chevron" class:up={showCode}>▾</span> d2 source
-    <span class="note">edit or paste — the blocks follow</span>
-  </button>
+  <div class="bar">
+    <button class="drawer" onclick={() => (showCode = !showCode)} aria-expanded={showCode}>
+      <span class="chevron" class:up={showCode}>▾</span> d2 source
+      <span class="note">edit or paste — the blocks follow</span>
+    </button>
+    <a href={REPO} target="_blank" rel="noopener">source</a>
+    <a href="{REPO}/blob/main/LICENSE" target="_blank" rel="noopener">MIT</a>
+  </div>
   {#if showCode}
     <textarea
       class="code"
@@ -243,8 +248,16 @@
   footer { background: var(--surface); border-block-start: 1px solid var(--line); }
   footer.open { max-block-size: 32vh; display: flex; flex-direction: column; }
 
+  .bar { display: flex; align-items: center; }
+  .bar a {
+    padding: 6px 8px; font-size: 11px; color: var(--muted);
+    text-decoration: none; white-space: nowrap;
+  }
+  .bar a:hover { color: var(--accent); text-decoration: underline; }
+  .bar a:last-child { padding-inline-end: 14px; }
+
   .drawer {
-    display: flex; align-items: center; gap: 7px; inline-size: 100%;
+    display: flex; align-items: center; gap: 7px; flex: 1;
     font: inherit; font-size: 12px; font-weight: 600; text-align: start;
     padding: 6px 14px; border: 0; background: none; color: var(--fg); cursor: pointer;
   }

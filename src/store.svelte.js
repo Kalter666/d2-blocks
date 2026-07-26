@@ -18,9 +18,13 @@ export const source = () => serialize(app.blocks) + '\n';
 
 // ------------------------------------------------------------------ history
 
-const past = [];
-const future = [];
+// $state, not plain arrays: the toolbar's disabled bindings need something
+// reactive to re-evaluate, or they latch on their first (empty) reading.
+const past = $state([]);
+const future = $state([]);
+
 const snapshot = () => structuredClone($state.snapshot(app.blocks));
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 /** Call before any mutation. ponytail: whole-tree snapshots, fine at this size. */
 export function commit() {
@@ -32,17 +36,26 @@ export function commit() {
 export const canUndo = () => past.length > 0;
 export const canRedo = () => future.length > 0;
 
-export function undo() {
-  if (!past.length) return;
-  future.push(snapshot());
-  app.blocks = past.pop();
+/**
+ * commit() fires on every field focus, so tabbing through inputs without typing
+ * stacks up identical states. Rather than trying to detect "did this focus lead
+ * to a change", step over entries that match where we already are — otherwise
+ * the first press of undo visibly does nothing.
+ */
+function step(from, to) {
+  const current = snapshot();
+  while (from.length) {
+    const state = from.pop();
+    if (same(state, current)) continue;
+    to.push(current);
+    app.blocks = $state.snapshot(state); // unwrap: it came out of a $state array
+    return true;
+  }
+  return false;
 }
 
-export function redo() {
-  if (!future.length) return;
-  past.push(snapshot());
-  app.blocks = future.pop();
-}
+export const undo = () => step(past, future);
+export const redo = () => step(future, past);
 
 // ---------------------------------------------------------------- mutations
 
