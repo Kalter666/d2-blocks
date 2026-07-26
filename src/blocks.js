@@ -85,6 +85,37 @@ export function absolutize(key, scope) {
   return [...path, rest].join('.');
 }
 
+/**
+ * d2 ends a block string at the first occurrence of its fence *anywhere* on a
+ * line, so content holding a `|` needs a wider one — `a: |md\n  x | y\n|` is a
+ * compile error, `||md … ||` is not.
+ */
+const fenceFor = (text) => '|'.repeat(1 + Math.max(0, ...[...text.matchAll(/\|+/g)].map((m) => m[0].length)));
+
+// Blank lines stay empty rather than padded: trailing whitespace would survive
+// serialize but not parse, breaking the byte round-trip.
+const indent = (text, pad) => text.split('\n').map((l) => (l.trim() ? pad + l : '')).join('\n');
+
+/**
+ * A box whose label is markdown. Without a shape that's the short form a person
+ * would write by hand; with one it has to be a map, since `{shape: x}` and a
+ * block string can't share a line.
+ */
+function mdBox(b, pad) {
+  const fence = fenceFor(b.label);
+  if (!b.shape) {
+    return `${pad}${q(b.name)}: ${fence}md\n${indent(b.label, `${pad}  `)}\n${pad}${fence}`;
+  }
+  return [
+    `${pad}${q(b.name)}: {`,
+    `${pad}  label: ${fence}md`,
+    indent(b.label, `${pad}    `),
+    `${pad}  ${fence}`,
+    `${pad}  shape: ${b.shape}`,
+    `${pad}}`,
+  ].join('\n');
+}
+
 function line(b, scope) {
   switch (b.type) {
     case 'direction':
@@ -117,7 +148,12 @@ export function serialize(blocks, depth = 0, scope = []) {
       out.push(`${pad}${head}{`);
       if (b.children.length) out.push(serialize(b.children, depth + 1, [...scope, q(b.name)]));
       out.push(`${pad}}`);
+    } else if (b.type === 'box' && b.md && b.label.trim()) {
+      out.push(mdBox(b, pad));
     } else {
+      // ponytail: an empty rich box degrades to a plain one — d2 rejects an
+      // empty block string, and emitting d2 that won't compile is worse than
+      // losing a toggle the user hasn't typed into yet.
       out.push(pad + line(b, scope));
     }
   }
@@ -147,7 +183,50 @@ const RE = {
   direction: /^direction:\s*(up|down|left|right)$/,
   labelled: /^([^:{}]+?):\s*([^{}]*)$/,
   bare: /^[A-Za-z_][\w -]*$/,
+  // A block string opener: `key: |md`, `key: ||latex`, `key: |`. The tag decides
+  // whether we can model it; the fence has to be captured either way so the body
+  // gets consumed rather than scanned.
+  blockOpen: /^(.+?):\s*(\|+)(\w*)\s*$/,
+  mdLabel: /^label:\s*(\|+)md\s*$/,
+  shapeOnly: /^shape:\s*(\w+)$/,
 };
+
+/** Consume a block string opened at `lines[i]`. Null if it never closes. */
+function takeBlock(lines, i, fence) {
+  for (let j = i + 1; j < lines.length; j++) {
+    if (lines[j].trim() === fence) return { text: dedent(lines.slice(i + 1, j)), next: j + 1 };
+  }
+  return null;
+}
+
+/** Strip the common leading whitespace, which is what d2 itself does. */
+function dedent(lines) {
+  const filled = lines.filter((l) => l.trim());
+  const n = Math.min(Infinity, ...filled.map((l) => l.length - l.trimStart().length));
+  return lines.map((l) => (l.trim() ? l.slice(n) : '')).join('\n');
+}
+
+/**
+ * `name: { label: |md … | shape: x }` — the only way to have markdown *and* a
+ * shape. Recognised as one box rather than a group, so it round-trips.
+ */
+function takeMdMap(lines, i, g) {
+  if (g[2]) return null; // the map head already carries a plain label
+  const open = RE.mdLabel.exec((lines[i + 1] ?? '').trim());
+  if (!open) return null;
+  const body = takeBlock(lines, i + 1, open[1]);
+  if (!body) return null;
+
+  let j = body.next;
+  const s = RE.shapeOnly.exec((lines[j] ?? '').trim());
+  if (s) j++;
+  if ((lines[j] ?? '').trim() !== '}') return null;
+
+  return {
+    block: { type: 'box', name: unq(g[1]), label: body.text, shape: s ? s[1] : '', md: true },
+    next: j + 1,
+  };
+}
 
 function parseLine(text, scope) {
   const t = text.trim();
@@ -187,9 +266,28 @@ export function parse(src) {
   const scope = []; // enclosing group keys, to resolve links back to root keys
   const top = () => stack.at(-1);
 
-  for (const text of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const text = lines[i];
     const t = text.trim();
     const raw = { type: 'raw', text };
+
+    // A block string swallows whole lines, braces included, so it has to be
+    // consumed before the brace scanner ever sees its body.
+    const open = RE.blockOpen.exec(t);
+    if (open) {
+      const body = takeBlock(lines, i, open[2]);
+      if (body) {
+        const modelled = open[3] === 'md' && open[1].trim() !== 'label';
+        top().push(modelled
+          ? { type: 'box', name: unq(open[1]), label: body.text, shape: '', md: true }
+          // |latex, |code, or markdown somewhere we can't put an editor: keep
+          // every line verbatim in one raw block rather than letting the body
+          // loose on the scanner.
+          : { type: 'raw', text: lines.slice(i, body.next).join('\n') });
+        i = body.next - 1;
+        continue;
+      }
+    }
 
     if (t === '}' && stack.length > 1) { stack.pop(); scope.pop(); continue; }
 
@@ -197,6 +295,9 @@ export function parse(src) {
     // connection with a map body isn't something we emit — leave it to raw.
     const g = RE.group.exec(t);
     if (g && !/(->|<-|--|<->)/.test(g[1])) {
+      const md = takeMdMap(lines, i, g);
+      if (md) { top().push(md.block); i = md.next - 1; continue; }
+
       const group = { type: 'group', name: unq(g[1]), label: g[2] ? unq(g[2]) : '', children: [] };
       top().push(group);
       stack.push(group.children);

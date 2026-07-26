@@ -1,5 +1,6 @@
 <script>
   import Stack from './Stack.svelte';
+  import Rich from './Rich.svelte';
   import { app, commit, del, reorder } from './store.svelte.js';
   import {
     keys, safeKey, renameKey, collides, defaultStyle,
@@ -41,6 +42,15 @@
     const from = path + safeKey(block.name);
     block.name = next;
     renameKey(app.blocks, from, path + safeKey(next));
+  }
+
+  // Rich text is a mode of the label, not a separate field, so toggling it off
+  // leaves the markdown behind as an ordinary (if long) label rather than
+  // dropping what the user wrote.
+  function toggleMd() {
+    commit();
+    if (block.md) delete block.md;
+    else block.md = true;
   }
 
   const spec = $derived(STYLE_PROPS[block.prop] ?? {});
@@ -87,12 +97,16 @@
     {#if block.type === 'box'}
       <span class="verb">box</span>
       <input class="slot name" class:bad={problem} aria-invalid={!!problem} value={block.name} oninput={(e) => setName(e.currentTarget.value)} onfocus={commit} placeholder="name" size="8" />
-      <span class="verb dim">labelled</span>
-      <input class="slot" bind:value={block.label} onfocus={commit} placeholder="same as name" size="10" />
+      {#if !block.md}
+        <span class="verb dim">labelled</span>
+        <input class="slot" bind:value={block.label} onfocus={commit} placeholder="same as name" size="10" />
+      {/if}
       <span class="verb dim">shaped</span>
       <select class="slot" bind:value={block.shape} onfocus={commit}>
-        {#each SHAPES as s}<option value={s}>{s || 'default'}</option>{/each}
+        {#each SHAPES as s}<option value={s}>{s || (block.md ? 'text' : 'default')}</option>{/each}
       </select>
+      <button class="chip" class:on={block.md} onclick={toggleMd}
+        title={block.md ? 'Back to a plain label' : 'Rich text label (markdown)'}>¶</button>
 
     {:else if block.type === 'group'}
       <span class="verb">group</span>
@@ -161,6 +175,10 @@
   </div>
 
   {#if problem}<p class="problem">{problem}</p>{/if}
+
+  {#if block.type === 'box' && block.md}
+    <Rich bind:value={block.label} />
+  {/if}
 
   {#if block.type === 'group'}
     <div class="children">
@@ -248,6 +266,14 @@
     display: flex; align-items: center; gap: 4px;
     font-size: 12px; color: var(--muted); cursor: pointer;
   }
+
+  .chip {
+    padding: 2px 6px; border-radius: 5px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--bg);
+    color: var(--muted); font: inherit; font-size: 12px; line-height: 1.3;
+  }
+  .chip:hover { color: var(--fg); }
+  .chip.on { background: var(--tint); border-color: var(--tint); color: #fff; }
 
   .raw-text {
     font-family: var(--mono);

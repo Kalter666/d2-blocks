@@ -16,7 +16,7 @@ phantom box instead of erroring. Visual tools avoid that but hand you a binary
 blob nobody can review in a diff.
 
 This tries to be both. You assemble a stack of blocks — *box*, *group*,
-*connect*, *style* — and the d2 source is generated from it. Nobody has to type
+*connect*, *style*, *note* — and the d2 source is generated from it. Nobody has to type
 syntax, and what comes out is the same file a developer would have written by
 hand. The source pane is editable too, so anyone who *does* know d2 can type or
 paste straight into it and watch the blocks rearrange themselves.
@@ -41,6 +41,27 @@ Two things fall out of blocks mapping 1:1 onto d2 statements:
   grey `d2` block holding the line verbatim. Paste in a hand-written file using
   vars, classes or imports, edit something unrelated, and the parts this editor
   doesn't understand come back byte-for-byte.
+
+## Rich text
+
+d2 labels can be markdown, which is what turns a diagram into something readable
+rather than a grid of captions. Hit `+ note`, or `¶` on any box, and the label
+becomes a small WYSIWYG editor — headings, bold, italic, code, links, lists —
+that writes an ordinary block string:
+
+```
+Notes: |md
+  # Payment flow
+  - charges the card
+|
+```
+
+Markdown is what's stored; the HTML only exists so a `contenteditable` can show
+it. `rich()` in `src/md.js` is the safety catch: it hands a block to the visual
+editor **only** if the markdown survives a round-trip byte-for-byte. Anything
+else — a table, an image, raw HTML, a nested list — opens as a plain markdown
+textarea with a button to reformat, so editing can never quietly rewrite text
+the toolbar didn't understand.
 
 ## Develop
 
@@ -88,6 +109,7 @@ pipeline and no hit-testing geometry.
 | `src/blocks.js` | block schema, `serialize`, `parse`, tree moves — the core |
 | `src/store.svelte.js` | app state, undo history, persistence |
 | `src/d2.js` | compile + render, and the SVG ↔ id index |
+| `src/md.js` | the markdown ⟷ HTML bridge behind the rich-text editor |
 
 ## Known limits
 
@@ -98,6 +120,10 @@ pipeline and no hit-testing geometry.
   own editor and range (colour picker, bounded number, checkbox, enum), taken
   from d2's own validation rather than guessed. `npm test` compiles every
   default and both ends of every range, so a drifting bound fails CI.
+- **Rich text is a box, not a group.** A markdown label on a group turns it into
+  a text shape and orphans its children — verified against the compiler — so the
+  `¶` toggle is only offered on boxes. A box with markdown and no shape renders
+  borderless; pick a shape to get the box back.
 - **A duplicate name is flagged, not prevented.** d2 merges two boxes called
   `auth` in the same scope into one shape. A drag that would cause that is
   refused outright, but typing a clashing name only turns the field red — you

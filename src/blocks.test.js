@@ -155,6 +155,97 @@ test('a pasted d2 file survives the editor untouched', () => {
   );
 });
 
+// ---------------------------------------------------------------- rich text
+
+const md = (label, shape = '') => [{ type: 'box', name: 'Notes', label, shape, md: true }];
+
+test('a markdown box is the short form a human would write', () => {
+  assert.equal(serialize(md('# Payment flow\n\n- charges the card')), [
+    'Notes: |md',
+    '  # Payment flow',
+    '',
+    '  - charges the card',
+    '|',
+  ].join('\n'));
+});
+
+test('markdown plus a shape needs the map form', () => {
+  assert.equal(serialize(md('**bold**', 'cylinder')), [
+    'Notes: {',
+    '  label: |md',
+    '    **bold**',
+    '  |',
+    '  shape: cylinder',
+    '}',
+  ].join('\n'));
+});
+
+test('markdown boxes round-trip', () => {
+  const cases = [
+    md('# Heading'),
+    md('# Heading\n\n- a\n- b\n\nclosing text'),
+    md('**bold**', 'cylinder'),
+    // d2 ends a block string at the first fence it sees, so this must widen it.
+    md('| a | b |\n| - | - |'),
+    md('a || b'),
+    // Braces on their own lines used to pop the brace scanner mid-file.
+    md('use a map:\n\n}\n{'),
+    [{ type: 'group', name: 'G', label: '', children: md('# Nested', 'cloud') }],
+    [...md('# Note'), { type: 'box', name: 'x', label: '', shape: '' },
+      { type: 'link', src: 'Notes', arrow: '->', dst: 'x', label: '' }],
+  ];
+  for (const t of cases) {
+    assert.deepEqual(parse(serialize(t)), t, serialize(t));
+  }
+});
+
+test('a wide fence is only used when the content forces it', () => {
+  assert.match(serialize(md('plain')), /^Notes: \|md$/m);
+  assert.match(serialize(md('a | b')), /^Notes: \|\|md$/m);
+  assert.match(serialize(md('a || b')), /^Notes: \|\|\|md$/m);
+});
+
+test('an empty rich box degrades to a plain one, because d2 rejects empty block strings', () => {
+  assert.equal(serialize(md('')), 'Notes');
+  // A whitespace-only label goes down the same path a plain box would, quotes
+  // and all — no special case worth carrying for a state nobody stays in.
+  assert.equal(serialize(md('   ')), 'Notes: "   "');
+});
+
+test('hand-written markdown source survives the editor', () => {
+  const pasted = [
+    'direction: right',
+    'Notes: |md',
+    '  # Title',
+    '',
+    '  Some **bold** text.',
+    '|',
+    'Notes -> x',
+  ].join('\n');
+  assert.equal(serialize(parse(pasted)), pasted);
+  const box = parse(pasted).find((b) => b.md);
+  assert.equal(box.label, '# Title\n\nSome **bold** text.', 'the body is dedented, as d2 does');
+});
+
+// Block strings we can't put an editor behind still can't be allowed to reach
+// the line scanner — their bodies contain arbitrary text.
+test('non-markdown block strings survive as one raw block', () => {
+  const src = ['eq: |latex', '  x = {1 \\over 2}', '|', 'a -> b'].join('\n');
+  const blocks = parse(src);
+  assert.equal(blocks.length, 2);
+  assert.equal(blocks[0].type, 'raw');
+  assert.equal(blocks[1].type, 'link');
+  assert.equal(serialize(blocks), src);
+});
+
+test('a markdown label on a group keeps the group', () => {
+  // d2 turns such a group into a text shape and orphans its children, so the
+  // editor doesn't model it — but it must still come back byte-for-byte.
+  const src = ['G: {', '  label: |md', '    # G', '  |', '  x', '}'].join('\n');
+  assert.equal(serialize(parse(src)), src);
+  assert.equal(parse(src)[0].type, 'group');
+});
+
 test('a file we cannot scan is preserved whole', () => {
   const src = 'a: {\n  b\n'; // unbalanced
   const blocks = parse(src);

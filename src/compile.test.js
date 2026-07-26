@@ -135,11 +135,55 @@ test('enum options are exactly what d2 allows', async () => {
   }
 });
 
+// d2 ends a block string at the first fence it sees anywhere on a line, so
+// content holding a `|` is a compile error unless the fence widens. A markdown
+// table is the obvious way a user trips over this.
+test('markdown labels compile, including content that would close the fence', async () => {
+  const cases = {
+    '# Heading\n\n- one\n- two': '',
+    'a **bold** claim': '',
+    '| col | col |\n| --- | --- |\n| a | b |': '',
+    'pipes || everywhere |||': '',
+    '}\n{': '',
+    'inside a shape': 'cloud',
+  };
+  for (const [label, shape] of Object.entries(cases)) {
+    const tree = [{ type: 'box', name: 'Notes', label, shape, md: true }];
+    const { diagram } = await compile(tree).catch((e) => {
+      assert.fail(`${JSON.stringify(label)} -> ${serialize(tree)}\n${JSON.stringify(e)}`);
+    });
+    assert.equal(diagram.shapes.length, 1);
+    assert.equal(diagram.shapes[0].label, label, 'the markdown reached d2 intact');
+    // No shape means d2 renders it as borderless text; naming one keeps it.
+    assert.equal(diagram.shapes[0].type, shape || 'text');
+  }
+});
+
+test('an empty rich box still produces valid d2', async () => {
+  // d2 rejects an empty block string outright, so serialize has to degrade.
+  const { diagram } = await compile([{ type: 'box', name: 'Notes', label: '', shape: '', md: true }]);
+  assert.equal(diagram.shapes[0].id, 'Notes');
+});
+
+test('a markdown box is still a normal shape — connectable and stylable', async () => {
+  const { diagram } = await compile([
+    { type: 'box', name: 'Notes', label: '# Hi', shape: '', md: true },
+    { type: 'box', name: 'x', label: '', shape: '' },
+    { type: 'link', src: 'Notes', arrow: '->', dst: 'x', label: '' },
+    { type: 'style', target: 'Notes', prop: 'opacity', value: '0.8' },
+  ]);
+  assert.deepEqual(diagram.connections.map((c) => [c.src, c.dst]), [['Notes', 'x']]);
+  assert.equal(diagram.shapes.find((s) => s.id === 'Notes').opacity, 0.8);
+});
+
 test('rendered SVG tags every shape with its id, so the canvas can link back', async () => {
   const tree = [
     { type: 'box', name: 'Database', label: '', shape: 'cylinder' },
     { type: 'group', name: 'Backend', label: '', children: [{ type: 'box', name: 'API', label: '', shape: '' }] },
     { type: 'link', src: 'Backend.API', arrow: '->', dst: 'Database', label: '' },
+    // A markdown box renders as a borderless text shape — still tagged, so the
+    // block can light it up on hover like any other.
+    { type: 'box', name: 'Notes', label: '# Hi\n\n- a', shape: '', md: true },
   ];
   const r = await compile(tree);
   const svg = await d2.render(r.diagram, r.renderOptions);
