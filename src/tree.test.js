@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { moveInto, reorderIn, parentOf, wouldNest, keys } from './blocks.js';
+import { moveInto, reorderIn, parentOf, wouldNest, keys, renameKey, serialize } from './blocks.js';
 import { encode, decode } from './share.js';
 
 const box = (name) => ({ type: 'box', name, label: '', shape: '' });
@@ -72,6 +72,75 @@ test('parentOf finds the owning list', () => {
   assert.equal(parentOf(t, t[0]), t);
   assert.equal(parentOf(t, t[2].children[1]), t[2].children);
   assert.equal(parentOf(t, box('nowhere')), null);
+});
+
+test('dragging a box into a group repoints links at its new key', () => {
+  const svc = box('svc');
+  const auth = group('AUTH', []);
+  const link = { type: 'link', src: 'svc', arrow: '->', dst: 'db', label: '' };
+  const t = [svc, box('db'), auth, link];
+
+  assert.equal(moveInto(t, svc, auth.children, 0), true);
+  assert.deepEqual(auth.children, [svc]);
+  assert.equal(link.src, 'AUTH.svc');
+  assert.equal(link.dst, 'db', 'an unrelated key must not move');
+});
+
+test('dragging a group out carries its children’s links', () => {
+  const t = [
+    group('outer', [group('inner', [box('x')])]),
+    { type: 'link', src: 'outer.inner.x', arrow: '->', dst: 'outer.inner', label: '' },
+  ];
+  const inner = t[0].children[0];
+  const link = t[1];
+  assert.equal(moveInto(t, inner, t, 0), true);
+  assert.equal(link.src, 'inner.x');
+  assert.equal(link.dst, 'inner');
+});
+
+test('renaming a box repoints everything aimed at it', () => {
+  const t = [
+    box('api'), box('db'),
+    { type: 'link', src: 'api', arrow: '->', dst: 'db', label: '' },
+    { type: 'style', target: 'api', prop: 'fill', value: '#eee' },
+  ];
+  assert.equal(renameKey(t, 'api', 'gateway'), true);
+  assert.equal(t[2].src, 'gateway');
+  assert.equal(t[2].dst, 'db', 'an unrelated key must not move');
+  assert.equal(t[3].target, 'gateway');
+});
+
+test('renaming a group carries its whole subtree', () => {
+  const t = [
+    group('AUTH', [
+      box('svc'),
+      { type: 'link', src: 'AUTH.svc', arrow: '->', dst: 'AUTH.db', label: '' },
+    ]),
+    { type: 'style', target: 'AUTH.svc', prop: 'fill', value: '#eee' },
+    { type: 'link', src: 'AUTHORITY', arrow: '->', dst: 'AUTH', label: '' },
+  ];
+  assert.equal(renameKey(t, 'AUTH', 'Auth'), true);
+  assert.equal(t[0].children[1].src, 'Auth.svc');
+  assert.equal(t[0].children[1].dst, 'Auth.db');
+  assert.equal(t[1].target, 'Auth.svc');
+  assert.equal(t[2].dst, 'Auth');
+  assert.equal(t[2].src, 'AUTHORITY', 'a key that merely starts with AUTH is not a child');
+});
+
+test('renaming into a name that needs quoting keeps links valid', () => {
+  const t = [
+    box('a'), box('b'),
+    { type: 'link', src: 'a', arrow: '->', dst: 'b', label: '' },
+  ];
+  t[0].name = 'a.b';
+  renameKey(t, 'a', '"a.b"');
+  assert.match(serialize(t), /^"a\.b" -> b$/m);
+});
+
+test('renaming to the same key is a no-op', () => {
+  const t = [box('a'), { type: 'link', src: 'a', arrow: '->', dst: 'a', label: '' }];
+  assert.equal(renameKey(t, 'a', 'a'), false);
+  assert.equal(renameKey(t, '', 'x'), false);
 });
 
 test('share links survive the round trip', async () => {

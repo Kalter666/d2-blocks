@@ -250,9 +250,53 @@ export function moveInto(blocks, block, list, index) {
   const shift = from === list && from.indexOf(block) < index ? 1 : 0;
   const to = Math.max(0, Math.min(index - shift, list.length - shift));
   if (from === list && to === from.indexOf(block)) return false;
+
+  // Dragging across groups renames the block just as surely as typing does —
+  // `svc` inside AUTH is the key `AUTH.svc` — so references have to follow.
+  const was = keyOf(blocks, block);
   remove(blocks, block);
   list.splice(to, 0, block);
+  const now = keyOf(blocks, block);
+  if (was && now) renameKey(blocks, was, now);
   return true;
+}
+
+/** The fully-qualified key a box or group currently has, or null. */
+export function keyOf(blocks, target, prefix = '') {
+  for (const b of blocks) {
+    if (b.type !== 'box' && b.type !== 'group') continue;
+    const key = prefix + q(b.name);
+    if (b === target) return key;
+    if (b.type === 'group') {
+      const found = keyOf(b.children, target, `${key}.`);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+/**
+ * Repoint every connect and style block from `from` to `to`. Renaming a group
+ * has to carry its whole subtree, hence the prefix case: renaming `AUTH` to
+ * `Auth` must turn `AUTH.db` into `Auth.db`, not leave a dangling key that d2
+ * would happily materialise as a new empty box.
+ */
+export function renameKey(blocks, from, to) {
+  if (!from || from === to) return false;
+  let changed = false;
+  const swap = (k) => {
+    if (k === from) { changed = true; return to; }
+    if (k.startsWith(`${from}.`)) { changed = true; return to + k.slice(from.length); }
+    return k;
+  };
+  (function walk(list) {
+    for (const b of list) {
+      if (b.type === 'link') { b.src = swap(b.src); b.dst = swap(b.dst); }
+      else if (b.type === 'style') b.target = swap(b.target);
+      else if (b.type === 'group') walk(b.children);
+    }
+  })(blocks);
+  return changed;
 }
 
 /** Nudge a block up or down within its own list — the keyboard route to drag. */

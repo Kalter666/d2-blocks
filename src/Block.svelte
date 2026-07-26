@@ -1,7 +1,7 @@
 <script>
   import Stack from './Stack.svelte';
   import { app, commit, del, reorder } from './store.svelte.js';
-  import { keys, safeKey, SHAPES, STYLE_PROPS, DIRECTIONS, ARROWS } from './blocks.js';
+  import { keys, safeKey, renameKey, SHAPES, STYLE_PROPS, DIRECTIONS, ARROWS } from './blocks.js';
 
   let { block, path = '' } = $props();
 
@@ -19,6 +19,15 @@
   });
 
   const lit = $derived(targetId != null && app.hover === targetId);
+
+  // Not bind:value — the old key has to be read before the new one is written,
+  // so anything pointing at this block can be repointed in the same breath.
+  // Done per keystroke, so a half-typed name never leaves a dangling reference.
+  function setName(next) {
+    const from = path + safeKey(block.name);
+    block.name = next;
+    renameKey(app.blocks, from, path + safeKey(next));
+  }
 
   function onDragStart(e) {
     app.dragging = block;
@@ -54,7 +63,7 @@
 
     {#if block.type === 'box'}
       <span class="verb">box</span>
-      <input class="slot name" bind:value={block.name} onfocus={commit} placeholder="name" size="8" />
+      <input class="slot name" value={block.name} oninput={(e) => setName(e.currentTarget.value)} onfocus={commit} placeholder="name" size="8" />
       <span class="verb dim">labelled</span>
       <input class="slot" bind:value={block.label} onfocus={commit} placeholder="same as name" size="10" />
       <span class="verb dim">shaped</span>
@@ -64,7 +73,7 @@
 
     {:else if block.type === 'group'}
       <span class="verb">group</span>
-      <input class="slot name" bind:value={block.name} onfocus={commit} placeholder="name" size="8" />
+      <input class="slot name" value={block.name} oninput={(e) => setName(e.currentTarget.value)} onfocus={commit} placeholder="name" size="8" />
       <span class="verb dim">labelled</span>
       <input class="slot" bind:value={block.label} onfocus={commit} placeholder="same as name" size="10" />
 
