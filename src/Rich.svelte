@@ -63,6 +63,20 @@
     wysiwyg = true;
   }
 
+  // The inline editor is a few lines tall by design — it sits inside a block in
+  // a narrow column. Anything longer than a note wants room, so it can pop out.
+  let big = $state(false);
+  let dlg = $state(null);
+
+  $effect(() => { if (dlg && !dlg.open) dlg.showModal(); });
+
+  // The contenteditable is destroyed and rebuilt when it moves in or out of the
+  // dialog, so forget what was seeded — otherwise it comes back empty.
+  function expand(next) {
+    big = next;
+    last = null;
+  }
+
   const TOOLS = [
     ['B', 'Bold', () => cmd('bold'), 'b'],
     ['I', 'Italic', () => cmd('italic'), 'i'],
@@ -75,7 +89,7 @@
   ];
 </script>
 
-<div class="rich">
+{#snippet editor()}
   {#if wysiwyg}
     <div class="tools">
       {#each TOOLS as [glyph, title, run, style]}
@@ -85,6 +99,8 @@
           style:font-weight={style === 'b' ? '700' : null}
           style:font-style={style === 'i' ? 'italic' : null}>{glyph}</button>
       {/each}
+      <button class="grow" title={big ? 'Shrink back into the block' : 'Edit in a bigger window'}
+        onmousedown={(e) => e.preventDefault()} onclick={() => expand(!big)}>{big ? '⤡' : '⤢'}</button>
     </div>
 
     <div
@@ -107,7 +123,17 @@
       <button onclick={convert}>reformat &amp; edit visually</button>
     </p>
   {/if}
-</div>
+{/snippet}
+
+{#if big}
+  <!-- Native <dialog>: Escape, the backdrop and focus trapping all come free. -->
+  <dialog bind:this={dlg} onclose={() => expand(false)}>
+    <div class="rich full">{@render editor()}</div>
+    <form method="dialog"><button class="done">Done</button></form>
+  </dialog>
+{:else}
+  <div class="rich">{@render editor()}</div>
+{/if}
 
 <style>
   .rich {
@@ -135,6 +161,7 @@
     cursor: pointer;
   }
   .tools button:hover { background: var(--bg); color: var(--fg); }
+  .grow { margin-inline-start: auto; }
 
   .body {
     display: block;
@@ -169,6 +196,30 @@
     background: color-mix(in oklab, var(--muted) 18%, transparent);
   }
   .body :global(a) { color: var(--accent); }
+
+  dialog {
+    inline-size: min(760px, 92vw);
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--fg);
+  }
+  dialog::backdrop { background: rgb(0 0 0 / 0.45); }
+
+  .full { margin: 0; border: 0; border-radius: 0; }
+  .full .body { min-block-size: 55vh; max-block-size: 70vh; font-size: 14px; }
+  .full :global(h1) { font-size: 22px; }
+  .full :global(h2) { font-size: 18px; }
+  .full .tools button { font-size: 13px; padding: 4px 8px; }
+
+  .done {
+    display: block;
+    margin: 10px 12px 12px auto;
+    padding: 5px 14px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--accent); background: var(--accent); color: #fff;
+    font: inherit; font-size: 12px;
+  }
 
   .hint {
     margin: 0;

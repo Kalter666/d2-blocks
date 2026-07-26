@@ -97,12 +97,16 @@ const fenceFor = (text) => '|'.repeat(1 + Math.max(0, ...[...text.matchAll(/\|+/
 const indent = (text, pad) => text.split('\n').map((l) => (l.trim() ? pad + l : '')).join('\n');
 
 /**
- * A box whose label is markdown. Without a shape that's the short form a person
- * would write by hand; with one it has to be a map, since `{shape: x}` and a
- * block string can't share a line.
+ * A box or connection whose label is markdown. Without a shape that's the short
+ * form a person would write by hand; with one it has to be a map, since
+ * `{shape: x}` and a block string can't share a line.
  */
-function mdBox(b, pad) {
+function mdBlock(b, pad, scope) {
   const fence = fenceFor(b.label);
+  if (b.type === 'link') {
+    const conn = `${relativize(b.src, scope)} ${b.arrow} ${relativize(b.dst, scope)}`;
+    return `${pad}${conn}: ${fence}md\n${indent(b.label, `${pad}  `)}\n${pad}${fence}`;
+  }
   if (!b.shape) {
     return `${pad}${q(b.name)}: ${fence}md\n${indent(b.label, `${pad}  `)}\n${pad}${fence}`;
   }
@@ -148,8 +152,8 @@ export function serialize(blocks, depth = 0, scope = []) {
       out.push(`${pad}${head}{`);
       if (b.children.length) out.push(serialize(b.children, depth + 1, [...scope, q(b.name)]));
       out.push(`${pad}}`);
-    } else if (b.type === 'box' && b.md && b.label.trim()) {
-      out.push(mdBox(b, pad));
+    } else if ((b.type === 'box' || b.type === 'link') && b.md && b.label.trim()) {
+      out.push(mdBlock(b, pad, scope));
     } else {
       // ponytail: an empty rich box degrades to a plain one — d2 rejects an
       // empty block string, and emitting d2 that won't compile is worse than
@@ -277,9 +281,11 @@ export function parse(src) {
     if (open) {
       const body = takeBlock(lines, i, open[2]);
       if (body) {
-        const modelled = open[3] === 'md' && open[1].trim() !== 'label';
-        top().push(modelled
-          ? { type: 'box', name: unq(open[1]), label: body.text, shape: '', md: true }
+        // The part before the fence is an ordinary head — `Notes`, `"a.b"`,
+        // `a -> b` — so let parseLine identify it and just swap in the label.
+        const head = open[3] === 'md' && open[1].trim() !== 'label' ? parseLine(open[1], scope) : null;
+        top().push(head && (head.type === 'box' || head.type === 'link')
+          ? { ...head, label: body.text, md: true }
           // |latex, |code, or markdown somewhere we can't put an editor: keep
           // every line verbatim in one raw block rather than letting the body
           // loose on the scanner.

@@ -199,6 +199,28 @@ test('markdown boxes round-trip', () => {
   }
 });
 
+test('a connection label can be markdown too', () => {
+  const t = [
+    { type: 'box', name: 'a', label: '', shape: '' },
+    { type: 'box', name: 'b', label: '', shape: '' },
+    { type: 'link', src: 'a', arrow: '->', dst: 'b', label: '# Why\n\n- because', md: true },
+  ];
+  assert.equal(serialize(t), ['a', 'b', 'a -> b: |md', '  # Why', '', '  - because', '|'].join('\n'));
+  assert.deepEqual(parse(serialize(t)), t);
+});
+
+test('a markdown connection inside a group stays relative to it', () => {
+  const t = [
+    { type: 'group', name: 'G', label: '', children: [
+      { type: 'box', name: 'a', label: '', shape: '' },
+      { type: 'box', name: 'b', label: '', shape: '' },
+      { type: 'link', src: 'G.a', arrow: '->', dst: 'G.b', label: '**hi**', md: true },
+    ] },
+  ];
+  assert.match(serialize(t), /^ {2}a -> b: \|md$/m);
+  assert.deepEqual(parse(serialize(t)), t);
+});
+
 test('a wide fence is only used when the content forces it', () => {
   assert.match(serialize(md('plain')), /^Notes: \|md$/m);
   assert.match(serialize(md('a | b')), /^Notes: \|\|md$/m);

@@ -46,9 +46,11 @@ Two things fall out of blocks mapping 1:1 onto d2 statements:
 
 d2 labels can be markdown, which is what turns a diagram into something readable
 rather than a grid of captions. It isn't a separate kind of block — hit `¶` on
-any box and its label becomes a small WYSIWYG editor (headings, bold, italic,
-code, links, lists) writing an ordinary block string. The box keeps its shape,
-so a cylinder or an oval holds rich text just as well as a plain rectangle:
+any box or connection and its label becomes a small WYSIWYG editor (headings,
+bold, italic, code, links, lists) writing an ordinary block string. A box keeps
+its shape, so a cylinder or an oval holds rich text just as well as a plain
+rectangle. `⤢` pops the editor out into a full-size window when a few lines in a
+narrow column isn't enough room:
 
 ```
 Notes: |md

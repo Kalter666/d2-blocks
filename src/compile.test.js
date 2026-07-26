@@ -159,6 +159,16 @@ test('markdown labels compile, including content that would close the fence', as
   }
 });
 
+test('a markdown connection label reaches the connection', async () => {
+  const { diagram } = await compile([
+    { type: 'box', name: 'a', label: '', shape: '' },
+    { type: 'box', name: 'b', label: '', shape: '' },
+    { type: 'link', src: 'a', arrow: '->', dst: 'b', label: '# Why\n\n- because | maybe', md: true },
+  ]);
+  assert.equal(diagram.connections.length, 1);
+  assert.equal(diagram.connections[0].label, '# Why\n\n- because | maybe');
+});
+
 test('an empty rich box still produces valid d2', async () => {
   // d2 rejects an empty block string outright, so serialize has to degrade.
   const { diagram } = await compile([{ type: 'box', name: 'Notes', label: '', shape: '', md: true }]);

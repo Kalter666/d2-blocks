@@ -128,8 +128,12 @@
       <select class="slot" bind:value={block.dst} onfocus={commit}>
         {#each options as o}<option value={o.key}>{' '.repeat(o.depth * 2) + o.name}</option>{/each}
       </select>
-      <span class="verb dim">labelled</span>
-      <input class="slot" bind:value={block.label} onfocus={commit} placeholder="nothing" size="8" />
+      {#if !block.md}
+        <span class="verb dim">labelled</span>
+        <input class="slot" bind:value={block.label} onfocus={commit} placeholder="nothing" size="8" />
+      {/if}
+      <button class="chip" class:on={block.md} onclick={toggleMd}
+        title={block.md ? 'Back to a plain label' : 'Rich text label (markdown)'}>¶</button>
 
     {:else if block.type === 'style'}
       <span class="verb">style</span>
@@ -179,7 +183,7 @@
 
   {#if problem}<p class="problem">{problem}</p>{/if}
 
-  {#if block.type === 'box' && block.md}
+  {#if (block.type === 'box' || block.type === 'link') && block.md}
     <Rich bind:value={block.label} />
   {/if}
 
