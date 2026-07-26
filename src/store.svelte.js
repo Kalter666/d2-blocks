@@ -73,6 +73,24 @@ export const move = edit(moveInto);
 export const reorder = edit(reorderIn);
 export const del = edit(remove);
 
+/**
+ * The root direction belongs in the toolbar next to layout and theme, not in the
+ * stack — it's one setting for the whole diagram, and as a block it could be
+ * deleted with no way to get it back. It stays a block underneath so pasted d2
+ * round-trips; the stack just doesn't render the root one.
+ *
+ * `down` is d2's own default, so a file with no direction statement reads as
+ * down rather than inventing one the source doesn't say.
+ */
+export const direction = () => app.blocks.find((b) => b.type === 'direction')?.value ?? 'down';
+
+export function setDirection(value) {
+  commit();
+  const found = app.blocks.find((b) => b.type === 'direction');
+  if (found) found.value = value;
+  else app.blocks.unshift({ type: 'direction', value });
+}
+
 export function add(block) {
   commit();
   app.blocks.push(block);

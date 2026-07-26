@@ -2,9 +2,10 @@
   import Stack from './Stack.svelte';
   import Canvas from './Canvas.svelte';
   import { draw } from './d2.js';
-  import { keys, defaultStyle } from './blocks.js';
+  import { keys, defaultStyle, DIRECTIONS } from './blocks.js';
   import {
     app, source, add, undo, redo, canUndo, canRedo, save, load, setSource, commit,
+    direction, setDirection,
   } from './store.svelte.js';
 
   const THEMES = [
@@ -102,6 +103,12 @@
     <button onclick={undo} disabled={!canUndo()} title="Undo (Ctrl+Z)">↶</button>
     <button onclick={redo} disabled={!canRedo()} title="Redo (Ctrl+Shift+Z)">↷</button>
   </div>
+
+  <label>flow
+    <select value={direction()} onchange={(e) => setDirection(e.currentTarget.value)}>
+      {#each DIRECTIONS as d}<option value={d}>{d}</option>{/each}
+    </select>
+  </label>
 
   <label>layout
     <select bind:value={app.layout}>

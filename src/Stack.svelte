@@ -16,6 +16,15 @@
   // first, is refused — but it has to *look* refused rather than just do nothing.
   const blocked = $derived(!!app.dragging && !canMoveInto(app.dragging, list));
 
+  // The root direction is a toolbar setting, so it isn't drawn here. A group's
+  // own direction still is — it's a real per-container choice, and pasting is
+  // the only way one gets there.
+  const shown = $derived(root ? list.filter((b) => b.type !== 'direction') : list);
+
+  // Drop indices are counted against what's on screen; the move is against the
+  // real list, which may hold blocks the stack didn't draw.
+  const listIndex = (i) => (i >= shown.length ? list.length : list.indexOf(shown[i]));
+
   /** Insertion index from the pointer: before the first block whose middle is below it. */
   function indexAt(y) {
     const blocks = [...el.children].filter((c) => c.classList.contains('block'));
@@ -38,7 +47,7 @@
   function onDrop(e) {
     e.preventDefault();
     e.stopPropagation();
-    if (app.dragging && !blocked) move(app.dragging, list, at < 0 ? list.length : at);
+    if (app.dragging && !blocked) move(app.dragging, list, listIndex(at < 0 ? shown.length : at));
     at = -1;
     hovering = false;
     app.dragging = null;
@@ -50,19 +59,19 @@
   class="stack"
   role="list"
   class:root
-  class:empty={list.length === 0}
+  class:empty={shown.length === 0}
   class:receiving={at >= 0}
   class:blocked={blocked && hovering}
   ondragover={onDragOver}
   ondragleave={() => { at = -1; hovering = false; }}
   ondrop={onDrop}
 >
-  {#each list as block, i (block)}
+  {#each shown as block, i (block)}
     {#if at === i}<div class="indicator"></div>{/if}
     <Block {block} {path} siblings={list} />
   {/each}
-  {#if at >= list.length}<div class="indicator"></div>{/if}
-  {#if list.length === 0}<p class="hint">drop blocks here</p>{/if}
+  {#if at >= shown.length}<div class="indicator"></div>{/if}
+  {#if shown.length === 0}<p class="hint">drop blocks here</p>{/if}
 </div>
 
 <style>
