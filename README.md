@@ -44,7 +44,7 @@ Two things fall out of blocks mapping 1:1 onto d2 statements:
 
 ```sh
 npm install
-npm run dev      # http://localhost:5173/d2-editor/
+npm run dev      # http://localhost:5173/d2-blocks/
 npm test         # round-trip + real-compiler checks
 npm run build
 ```
