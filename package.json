@@ -1,0 +1,19 @@
+{
+  "name": "d2-editor",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test --test-force-exit"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^6.2.1",
+    "svelte": "^5.42.2",
+    "vite": "^7.1.7"
+  },
+  "dependencies": {
+    "@terrastruct/d2": "^0.1.33"
+  }
+}
