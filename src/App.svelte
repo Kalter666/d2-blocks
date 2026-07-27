@@ -22,6 +22,8 @@
   let showExamples = $state(false);
   let showMermaid = $state(false);
   let toast = $state('');
+  let sourceHeight = $state(null);
+  let sourceFooter = $state(null);
   const src = $derived(source());
   const options = $derived(keys(app.blocks));
 
@@ -100,6 +102,40 @@
     draft = null;
     setSource(example.source);
     flash(t('toast.exampleLoaded', { title: exampleText(example.id).title }));
+  }
+
+  const MIN_SOURCE_HEIGHT = 150;
+  const clampSourceHeight = (height) =>
+    Math.min(Math.max(MIN_SOURCE_HEIGHT, window.innerHeight * 0.7), Math.max(MIN_SOURCE_HEIGHT, height));
+
+  function startSourceResize(e) {
+    e.preventDefault();
+    const handle = e.currentTarget;
+    const pointer = e.pointerId;
+    const startY = e.clientY;
+    const startHeight = sourceFooter.getBoundingClientRect().height;
+
+    handle.setPointerCapture(pointer);
+    const move = (event) => {
+      sourceHeight = clampSourceHeight(startHeight + startY - event.clientY);
+    };
+    const stop = () => {
+      if (handle.hasPointerCapture(pointer)) handle.releasePointerCapture(pointer);
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', stop);
+      handle.removeEventListener('pointercancel', stop);
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', stop);
+    handle.addEventListener('pointercancel', stop);
+  }
+
+  function resizeSourceWithKeys(e) {
+    const step = e.shiftKey ? 64 : 16;
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+    e.preventDefault();
+    const height = sourceFooter.getBoundingClientRect().height;
+    sourceHeight = clampSourceHeight(height + (e.key === 'ArrowUp' ? step : -step));
   }
 
   function onKey(e) {
@@ -200,7 +236,22 @@
   <Canvas />
 </main>
 
-<footer class:open={showCode}>
+<footer
+  bind:this={sourceFooter}
+  class:open={showCode}
+  style:height={showCode && sourceHeight ? `${sourceHeight}px` : null}
+>
+  {#if showCode}
+    <button
+      type="button"
+      class="source-resizer"
+      aria-label={t('source.resize')}
+      title={t('source.resize')}
+      onpointerdown={startSourceResize}
+      onkeydown={resizeSourceWithKeys}
+      ondblclick={() => (sourceHeight = null)}
+    ></button>
+  {/if}
   <div class="bar">
     <button class="drawer" onclick={() => (showCode = !showCode)} aria-expanded={showCode}>
       <span class="chevron" class:up={showCode}>▾</span> {t('source.label')}
@@ -302,8 +353,41 @@
   .add.link  { background: #f59e0b; }
   .add.style { background: #ec4899; }
 
-  footer { background: var(--surface); border-block-start: 1px solid var(--line); }
-  footer.open { max-block-size: 32vh; display: flex; flex-direction: column; }
+  footer {
+    position: relative;
+    flex: none;
+    background: var(--surface);
+    border-block-start: 1px solid var(--line);
+  }
+  footer.open {
+    block-size: min(32vh, 18rem);
+    min-block-size: 150px;
+    max-block-size: 70vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .source-resizer {
+    position: absolute;
+    z-index: 2;
+    inset: -4px 0 auto;
+    inline-size: 100%;
+    block-size: 9px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: row-resize;
+    touch-action: none;
+  }
+  .source-resizer::after {
+    content: '';
+    position: absolute;
+    inset: 3px 0 auto;
+    border-block-start: 1px solid transparent;
+  }
+  .source-resizer:hover::after,
+  .source-resizer:focus-visible::after { border-color: var(--accent); }
+  .source-resizer:focus-visible { outline: none; }
 
   .bar { display: flex; align-items: center; }
   .bar a {

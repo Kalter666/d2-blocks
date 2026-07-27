@@ -42,9 +42,49 @@
     if (sel) cmd('insertHTML', `<code>${esc(sel)}</code>`);
   }
 
+  function selectedRange() {
+    const selection = document.getSelection();
+    if (!selection?.rangeCount) return null;
+    const range = selection.getRangeAt(0);
+    return el.contains(range.commonAncestorContainer) ? range.cloneRange() : null;
+  }
+
+  function restoreRange(range) {
+    el.focus();
+    const selection = document.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  function linkAt(node) {
+    const element = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+    const anchor = element?.closest?.('a');
+    return anchor && el.contains(anchor) ? anchor : null;
+  }
+
   function link() {
-    const url = prompt(t('rich.linkPrompt'));
-    if (url) cmd('createLink', url);
+    const range = selectedRange();
+    if (!range) return;
+    const startLink = linkAt(range.startContainer);
+    const endLink = linkAt(range.endContainer);
+    const anchor = startLink && startLink === endLink ? startLink : null;
+    const url = prompt(t('rich.linkPrompt'), anchor?.getAttribute('href') ?? '');
+    if (url === null) return;
+
+    restoreRange(range);
+    const href = url.trim();
+    if (anchor) {
+      if (href) anchor.setAttribute('href', href);
+      else anchor.replaceWith(...anchor.childNodes);
+      pull();
+    } else if (href && !range.collapsed) {
+      document.execCommand('createLink', false, href);
+      pull();
+    }
+  }
+
+  function keepLinkEditable(e) {
+    if (e.target.closest('a') && (e.type === 'click' || e.key === 'Enter')) e.preventDefault();
   }
 
   function onPaste(e) {
@@ -116,6 +156,8 @@
       spellcheck="false"
       oninput={pull}
       onpaste={onPaste}
+      onclick={keepLinkEditable}
+      onkeydown={keepLinkEditable}
       onfocus={commit}
     ></div>
   {:else}

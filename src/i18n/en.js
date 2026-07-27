@@ -57,6 +57,7 @@ export default {
     'source.label': 'd2 source',
     'source.note': 'edit or paste — the blocks follow',
     'source.aria': 'd2 source',
+    'source.resize': 'Resize d2 source',
     'footer.source': 'source',
 
     // toasts

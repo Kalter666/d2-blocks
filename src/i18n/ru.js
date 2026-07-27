@@ -56,6 +56,7 @@ export default {
     'source.label': 'исходник d2',
     'source.note': 'редактируйте или вставьте — блоки подстроятся',
     'source.aria': 'исходник d2',
+    'source.resize': 'Изменить размер исходника d2',
     'footer.source': 'исходный код',
 
     // уведомления
