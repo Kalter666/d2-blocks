@@ -1,5 +1,6 @@
 import { D2 } from '@terrastruct/d2';
 import { sanitize } from './sanitize.js';
+import { serial } from './serial.js';
 
 // One instance, one worker — until one dies. d2 runs as Go compiled to wasm in a
 // web worker, and a panic in there takes the worker with it *silently*: no error
@@ -24,9 +25,17 @@ function watch(work) {
   ]);
 }
 
+// One worker means one job at a time: overlapping compile/render calls interleave
+// on the single Go instance and hand back a corrupted SVG. Every draw goes through
+// the gate so its compile+render runs to completion before the next starts.
+const gate = serial();
+
+/** Compile + render, serialised against the shared worker. Throws d2's own message on a syntax error. */
+export function draw(src, opts = {}) {
+  return gate(() => render(src, opts));
+}
+
 /**
- * Compile + render. Throws with d2's own message on a syntax error.
- *
  * `scale: 1` matters: without it d2 renders a fit-to-screen SVG with no
  * width/height at all, which stretches to its container and makes our own zoom
  * a no-op. With it the SVG has an intrinsic size we can scale predictably.
@@ -34,7 +43,7 @@ function watch(work) {
  * `darkThemeID` makes d2 emit a prefers-color-scheme block, so the diagram
  * follows the OS theme the same way the rest of the app does.
  */
-export async function draw(src, { layout = 'dagre', themeID = 0, darkThemeID = 200, sketch = false } = {}) {
+async function render(src, { layout = 'dagre', themeID = 0, darkThemeID = 200, sketch = false }) {
   const r = await watch(d2.compile(src || '', { layout, themeID, darkThemeID, sketch, pad: 24 }));
   const svg = await watch(d2.render(r.diagram, { ...r.renderOptions, scale: 1, noXMLTag: true }));
   return { svg: sanitize(svg), diagram: r.diagram };

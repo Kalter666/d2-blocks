@@ -2,11 +2,12 @@
   import Stack from './Stack.svelte';
   import Canvas from './Canvas.svelte';
   import Examples from './Examples.svelte';
+  import MermaidImport from './MermaidImport.svelte';
   import { draw } from './d2.js';
   import { keys, defaultStyle, DIRECTIONS } from './blocks.js';
   import {
     app, source, add, undo, redo, canUndo, canRedo, save, setSource, commit,
-    direction, setDirection,
+    direction, setDirection, mermaid,
   } from './store.svelte.js';
 
   const THEMES = [
@@ -21,6 +22,7 @@
 
   let showCode = $state(true);
   let showExamples = $state(false);
+  let showMermaid = $state(false);
   let toast = $state('');
   const src = $derived(source());
   const options = $derived(keys(app.blocks));
@@ -82,6 +84,11 @@
   async function copyCode() {
     await navigator.clipboard.writeText(src);
     flash('d2 copied to clipboard');
+  }
+
+  async function copyMermaid() {
+    await navigator.clipboard.writeText(mermaid());
+    flash('mermaid copied to clipboard');
   }
 
   function downloadSvg() {
@@ -167,6 +174,8 @@
   <span class="spacer"></span>
   {#if app.busy}<span class="busy" aria-live="polite">drawing…</span>{/if}
 
+  <button onclick={() => (showMermaid = true)}>Import Mermaid</button>
+  <button onclick={copyMermaid}>Copy Mermaid</button>
   <button onclick={copyCode}>Copy d2</button>
   <button class="primary" onclick={downloadSvg}>Download SVG</button>
 </header>
@@ -213,6 +222,7 @@
 
 {#if toast}<div class="toast" role="status">{toast}</div>{/if}
 <Examples bind:open={showExamples} onload={loadExample} />
+<MermaidImport bind:open={showMermaid} onimport={() => flash('mermaid imported')} />
 
 <style>
   header {
