@@ -1,0 +1,20 @@
+direction: right
+Data: Curated data {shape: stored_data}
+Features: Feature store {shape: cylinder}
+Training: Training pipeline {shape: rectangle}
+Tracking: Experiment tracking {shape: rectangle}
+Registry: Model registry {shape: stored_data}
+Deploy: Deployment pipeline {shape: rectangle}
+Serving: Model serving {shape: rectangle}
+Monitor: Drift monitor {shape: rectangle}
+Alerts: Alert channel {shape: queue}
+Data -> Features
+Features -> Training
+Training -> Tracking
+Training -> Registry
+Registry -> Deploy: approved model
+Deploy -> Serving
+Features -> Serving: online features
+Serving -> Monitor: predictions
+Monitor -> Alerts
+Monitor -> Training: retrain trigger

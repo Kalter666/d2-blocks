@@ -1,0 +1,26 @@
+direction: right
+Merchant: Merchant {shape: person}
+PaymentAPI: Payment API {shape: rectangle}
+Saga: Settlement saga {shape: hexagon}
+Risk: Risk service {shape: rectangle}
+Ledger: Ledger service {shape: rectangle}
+Bank: Banking network {shape: cloud}
+Balance: Merchant balance {shape: cylinder}
+Events: Settlement events {shape: queue}
+Reconcile: Reconciliation worker {shape: rectangle}
+Merchant -> PaymentAPI: capture payment
+PaymentAPI -> Saga
+Saga -> Risk: screen transaction
+Risk -> Saga: approved
+Saga -> Ledger: reserve funds
+Ledger -> Saga: reservation posted
+Saga -> Bank: submit settlement
+Bank -> Saga: settlement accepted
+Saga -> Balance: credit merchant
+Saga -> Events: SettlementCompleted
+Events -> Reconcile
+Risk -> Saga: rejected
+Saga -> Ledger: reverse reservation
+Bank -> Saga: settlement rejected
+Saga -> Events: SettlementFailed
+Reconcile -> Ledger: repair discrepancy

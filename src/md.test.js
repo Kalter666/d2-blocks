@@ -3,7 +3,16 @@
 // here is that property, plus the cases that must answer no.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { toHtml, toMd, rich } from './md.js';
+import { toHtml, toMd, rich, markdownHint } from './md.js';
+
+test('markdown hints prefer a heading and clean an ordinary first line', () => {
+  assert.deepEqual(markdownHint('\n# Payment flow\n\nMore'), {
+    text: 'Payment flow', heading: true, empty: false,
+  });
+  assert.deepEqual(markdownHint('A **short** [description](https://example.com)\nMore'), {
+    text: 'A short description', heading: false, empty: false,
+  });
+});
 
 const ROUND_TRIPS = [
   '',

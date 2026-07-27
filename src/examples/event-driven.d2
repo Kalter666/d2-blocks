@@ -1,0 +1,18 @@
+direction: right
+Web: Web application {shape: page}
+Orders: Order service {shape: rectangle}
+Bus: Event bus {shape: queue}
+Inventory: Inventory consumer {shape: rectangle}
+Billing: Billing consumer {shape: rectangle}
+Shipping: Shipping consumer {shape: rectangle}
+Notifications: Notification consumer {shape: rectangle}
+InventoryDB: Inventory database {shape: cylinder}
+Ledger: Billing ledger {shape: cylinder}
+Web -> Orders
+Orders -> Bus: OrderCreated
+Bus -> Inventory
+Bus -> Billing
+Bus -> Shipping
+Bus -> Notifications
+Inventory -> InventoryDB
+Billing -> Ledger

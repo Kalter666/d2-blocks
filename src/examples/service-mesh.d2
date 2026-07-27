@@ -1,0 +1,22 @@
+direction: right
+Ingress: Ingress gateway {shape: hexagon}
+ServiceA: Orders service {shape: rectangle}
+ProxyA: Sidecar proxy A {shape: hexagon}
+ServiceB: Inventory service {shape: rectangle}
+ProxyB: Sidecar proxy B {shape: hexagon}
+ServiceC: Payments service {shape: rectangle}
+ProxyC: Sidecar proxy C {shape: hexagon}
+Control: Mesh control plane {shape: cloud}
+Telemetry: Telemetry backend {shape: stored_data}
+Ingress -> ProxyA
+ProxyA -> ServiceA
+ProxyA -> ProxyB: mTLS
+ProxyB -> ServiceB
+ProxyB -> ProxyC: mTLS
+ProxyC -> ServiceC
+Control -> ProxyA: policy
+Control -> ProxyB: policy
+Control -> ProxyC: policy
+ProxyA -> Telemetry
+ProxyB -> Telemetry
+ProxyC -> Telemetry

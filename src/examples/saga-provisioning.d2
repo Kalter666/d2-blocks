@@ -1,0 +1,27 @@
+direction: right
+Admin: Administrator {shape: person}
+Portal: Provisioning portal {shape: page}
+Saga: Tenant saga {shape: hexagon}
+Identity: Identity service {shape: rectangle}
+Database: Database provisioner {shape: rectangle}
+Storage: Storage provisioner {shape: rectangle}
+Billing: Billing service {shape: rectangle}
+Tenants: Tenant registry {shape: cylinder}
+Work: Durable work queue {shape: queue}
+Admin -> Portal: create tenant
+Portal -> Saga: provision
+Saga -> Identity: create organization
+Identity -> Saga: organization ready
+Saga -> Database: create database
+Database -> Saga: database ready
+Saga -> Storage: create bucket
+Storage -> Saga: bucket ready
+Saga -> Billing: start subscription
+Billing -> Saga: subscription active
+Saga -> Tenants: mark active
+Saga -> Work: persist next step
+Billing -> Saga: activation failed
+Saga -> Storage: delete bucket
+Saga -> Database: delete database
+Saga -> Identity: delete organization
+Saga -> Tenants: mark failed

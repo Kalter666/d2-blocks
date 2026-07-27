@@ -42,6 +42,51 @@ Two things fall out of blocks mapping 1:1 onto d2 statements:
   vars, classes or imports, edit something unrelated, and the parts this editor
   doesn't understand come back byte-for-byte.
 
+## Shapes are roles
+
+The shape dropdown lists what people actually draw — *Database*, *Queue*, *User*,
+*Cloud / external* — not `cylinder`, `queue`, `person`, `cloud`. The value written
+to the source is still d2's own name, so nothing about the file changes; hover an
+option to see which one it is. All 18 of d2's shapes are there, so a pasted file
+using `stored_data` still shows the right thing selected.
+
+## Two looks
+
+**3D** is the default. The diagram lies on a grid floor and every shape becomes
+a small physical object — a database is rack hardware with populated drive bays,
+a service is a vented appliance, storage is an industrial tank with a valve, and
+the name sits on a plaque where the object cannot hide it. Connections glow and
+their ticks march. **flat** is the ordinary d2 render.
+
+`src/Scene.svelte` is a [three.js](https://threejs.org) renderer. d2 still compiles
+and lays the diagram out; the scene reads the geometry out of the compiled result
+and builds real solids, lit and casting shadows, with an orbit camera. Models use
+separate physical materials for glass, paper, cardboard, skin, rubber and metal
+instead of tinting every part like painted steel. Labels are sprites, so they face
+the camera from any angle instead of lying on the ground.
+
+The SVG stays mounted but hidden. Download SVG still works from it, and each
+object’s resolved theme and style are read from the shape d2 drew, so the light
+and dark theme selectors work in both views without duplicating d2's palettes.
+Appearance can follow the system or be forced light/dark; choosing a palette
+automatically previews its matching appearance.
+Style blocks translate into 3D material colour, opacity, surface relief, shadows,
+label typography and animation. The marching connections and styled object
+animation stop under `prefers-reduced-motion: reduce`.
+
+## Examples
+
+**▦ Examples** opens a gallery of ready-made architectures — three-tier web app,
+event-driven, saga, RAG, zero-trust, and thirty-odd more — filtered by category or
+by a search over titles, descriptions and tags. Each one renders a live preview
+with the real compiler before you commit to it; loading one replaces the source and
+is a single undo away.
+
+Every example is an ordinary `.d2` file in `src/examples/`, with its metadata in
+`catalog.js`. Vite inlines them at build time, so the gallery needs no fetches, and
+`examples.test.js` compiles all of them and round-trips each through `parse`, so a
+bundled example that stopped being editable as blocks fails CI.
+
 ## Rich text
 
 d2 labels can be markdown, which is what turns a diagram into something readable
@@ -74,6 +119,13 @@ npm run dev      # http://localhost:5173/d2-blocks/
 npm test         # round-trip + real-compiler checks
 npm run build
 ```
+
+The 3D bodies are geometry, so `models.test.js` measures them without a GPU: one
+per d2 shape, checking it stands on the floor, fits the footprint d2 reserved, and
+is the height it claims. That caught four real bugs the first time it ran. What it
+*can't* judge is whether a thing looks like a database — open
+`http://localhost:5173/d2-blocks/?gallery` for that. It puts one of every shape on
+screen at once, and doesn't touch your saved diagram.
 
 `npm test` is worth running before touching `blocks.js`. Beyond the tree
 round-trip it compiles the generated d2 with the real d2 engine and asserts the
@@ -113,6 +165,9 @@ pipeline and no hit-testing geometry.
 | `src/store.svelte.js` | app state, undo history, persistence |
 | `src/d2.js` | compile + render, and the SVG ↔ id index |
 | `src/md.js` | the markdown ⟷ HTML bridge behind the rich-text editor |
+| `src/models.js` | the 3D bodies — DOM-free geometry, so a test can measure them |
+| `src/Scene.svelte` | the three.js renderer: skins, materials, lights, camera |
+| `src/examples.js` | the bundled `.d2` gallery and its catalogue |
 
 ## Known limits
 
@@ -123,6 +178,23 @@ pipeline and no hit-testing geometry.
   own editor and range (colour picker, bounded number, checkbox, enum), taken
   from d2's own validation rather than guessed. `npm test` compiles every
   default and both ends of every range, so a drifting bound fails CI.
+- **Every family is modelled.** A database is a server cabinet, storage is a
+  hooped tank with pipework, a queue is a flanged transport tube, a state is an
+  illuminated indicator, start/end is a two-button control station, a decision
+  is a warning sign on a post, a cloud is a shaded weather cloud, an actor is a
+  clothed figure, input/output is an open workstation, a process step is a
+  conveyor station, a document is a tabbed file folder, a page is a monitor, a
+  callout is a pinned note, and a component is a populated circuit board. Only a
+  container's platform is a plain extrusion.
+- **Models are per family.** All eighteen selectable shapes now have distinct
+  physical readings. Skins are painted procedurally into
+  canvases at startup — no image assets — and every model is built to the footprint
+  d2 laid out, so the 3D view and the flat one agree about where things are.
+- **3D shows one line of each label.** Labels are drawn into a canvas texture, so a
+  markdown note appears in 3D as its first line — read it in flat mode or on the
+  block. Icons and tooltips aren't carried over either.
+- **three.js costs ~150 kB gzipped** on top of the d2 wasm. It is bundled, not
+  lazy-loaded, so flat-mode-only users pay for it too.
 - **Rich text is a box, not a group.** A markdown label on a group turns it into
   a text shape and orphans its children — verified against the compiler — so the
   `¶` toggle is only offered on boxes. All 18 shapes hold markdown fine; leaving
@@ -134,6 +206,9 @@ pipeline and no hit-testing geometry.
   can't refuse a keystroke without making `authx` untypeable.
 - **Nesting is drag-only.** Arrow keys on a block's grip reorder it within its
   list; moving a block *into* a group needs a mouse.
+- **The examples are inlined, not fetched.** Every bundled `.d2` file ships in the
+  JavaScript bundle, which is why the gallery opens instantly and why adding a
+  hundred more would need `import.meta.glob` without `eager`.
 - **First load is heavy.** The d2 wasm is ~6 MB gzipped. If that becomes a
   problem, serve `d2.wasm` as a separate cacheable asset instead of using the
   npm browser bundle, which inlines it.

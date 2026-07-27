@@ -1,0 +1,19 @@
+direction: right
+OrderAPI: Order API {shape: rectangle}
+Saga: Saga orchestrator {shape: hexagon}
+Inventory: Inventory service {shape: rectangle}
+Payment: Payment service {shape: rectangle}
+Shipping: Shipping service {shape: rectangle}
+Orders: Order database {shape: cylinder}
+Events: Saga events {shape: queue}
+OrderAPI -> Saga: start order
+Saga -> Inventory: reserve
+Inventory -> Saga: reserved
+Saga -> Payment: charge
+Payment -> Saga: charged
+Saga -> Shipping: create shipment
+Shipping -> Saga: accepted
+Saga -> Orders: complete
+Saga -> Events: state changes
+Saga -> Inventory: compensate release
+Saga -> Payment: compensate refund

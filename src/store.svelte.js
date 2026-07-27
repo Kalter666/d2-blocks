@@ -5,7 +5,9 @@ export const app = $state({
   layout: 'dagre',
   theme: 0,
   darkTheme: 200,
+  appearance: 'system', // 'system' | 'light' | 'dark'
   sketch: false,
+  look: '3d',    // '3d' | 'flat' — see Canvas.svelte and Scene.svelte
   hover: null,   // d2 id of the shape/connection under the pointer, either side
   dragging: null,
   svg: '',
@@ -105,7 +107,8 @@ let loaded = false; // until load() settles, autosave would overwrite the save
 export function save() {
   if (!loaded) return;
   localStorage.setItem(KEY, JSON.stringify({
-    src: source(), layout: app.layout, theme: app.theme, darkTheme: app.darkTheme, sketch: app.sketch,
+    src: source(), layout: app.layout, theme: app.theme, darkTheme: app.darkTheme,
+    appearance: app.appearance, sketch: app.sketch, look: app.look,
   }));
 }
 
@@ -117,7 +120,9 @@ export function load() {
     app.layout = saved.layout ?? app.layout;
     app.theme = saved.theme ?? app.theme;
     app.darkTheme = saved.darkTheme ?? app.darkTheme;
+    app.appearance = saved.appearance ?? app.appearance;
     app.sketch = saved.sketch ?? app.sketch;
+    app.look = saved.look ?? app.look;
   } catch {
     /* corrupt save, start fresh */
   } finally {

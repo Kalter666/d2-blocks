@@ -1,0 +1,26 @@
+direction: right
+Subscriber: Subscriber {shape: person}
+SubscriptionAPI: Subscription API {shape: rectangle}
+Saga: Subscription change saga {shape: hexagon}
+Plans: Plan service {shape: rectangle}
+Billing: Billing service {shape: rectangle}
+Entitlements: Entitlement service {shape: rectangle}
+Notifications: Notification service {shape: rectangle}
+Subscriptions: Subscription database {shape: cylinder}
+Events: Subscription events {shape: queue}
+Subscriber -> SubscriptionAPI: upgrade plan
+SubscriptionAPI -> Saga
+Saga -> Plans: validate target plan
+Plans -> Saga: plan valid
+Saga -> Billing: prorate and charge
+Billing -> Saga: charge accepted
+Saga -> Entitlements: grant features
+Entitlements -> Saga: features granted
+Saga -> Subscriptions: commit new plan
+Saga -> Events: SubscriptionChanged
+Events -> Notifications
+Billing -> Saga: charge declined
+Saga -> Plans: release reservation
+Entitlements -> Saga: grant failed
+Saga -> Billing: issue refund
+Saga -> Subscriptions: retain old plan

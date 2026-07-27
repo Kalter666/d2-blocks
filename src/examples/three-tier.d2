@@ -1,0 +1,13 @@
+direction: right
+Users: Users {shape: person}
+CDN: CDN {shape: cloud}
+Web: Web frontend {shape: page}
+API: Application API {shape: rectangle}
+Cache: Redis cache {shape: stored_data}
+Database: Primary database {shape: cylinder}
+Users -> CDN: HTTPS
+CDN -> Web: static assets
+Web -> API: JSON API
+API -> Cache: hot reads
+API -> Database: queries
+Cache -> Database: cache miss

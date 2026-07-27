@@ -1,0 +1,17 @@
+direction: right
+Producers: Event producers {shape: rectangle}
+Stream: Event stream {shape: queue}
+Processor: Stream processors {shape: rectangle}
+HotStore: Real-time store {shape: stored_data}
+Lake: Object storage {shape: stored_data}
+Aggregator: Batch aggregator {shape: rectangle}
+Warehouse: Analytics warehouse {shape: cylinder}
+Dashboard: Live dashboard {shape: page}
+Producers -> Stream
+Stream -> Processor
+Processor -> HotStore
+Processor -> Lake
+HotStore -> Dashboard: live metrics
+Lake -> Aggregator
+Aggregator -> Warehouse
+Warehouse -> Dashboard: historical

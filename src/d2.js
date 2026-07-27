@@ -1,7 +1,27 @@
 import { D2 } from '@terrastruct/d2';
 
-// One instance, one worker, for the life of the page.
-const d2 = new D2();
+// One instance, one worker — until one dies. d2 runs as Go compiled to wasm in a
+// web worker, and a panic in there takes the worker with it *silently*: no error
+// event, no rejection, the pending promise simply never settles. Left alone that
+// shows up as a spinner that never stops and a canvas that never updates again,
+// including after a reload, since the input is restored from localStorage.
+let d2 = new D2();
+
+const PATIENCE = 8000; // generous: a cold first compile loads ~6 MB of wasm
+
+/** Turn "never settles" into a real rejection, and replace the dead worker. */
+function watch(work) {
+  let timer;
+  return Promise.race([
+    work.finally(() => clearTimeout(timer)),
+    new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        d2 = new D2(); // the old one is gone; the next attempt gets a live worker
+        reject(new Error('The d2 engine stopped responding, so it was restarted. If this keeps happening, the last edit is crashing it — undo it, or clear the saved diagram.'));
+      }, PATIENCE);
+    }),
+  ]);
+}
 
 /**
  * Compile + render. Throws with d2's own message on a syntax error.
@@ -14,8 +34,8 @@ const d2 = new D2();
  * follows the OS theme the same way the rest of the app does.
  */
 export async function draw(src, { layout = 'dagre', themeID = 0, darkThemeID = 200, sketch = false } = {}) {
-  const r = await d2.compile(src || '', { layout, themeID, darkThemeID, sketch, pad: 24 });
-  const svg = await d2.render(r.diagram, { ...r.renderOptions, scale: 1, noXMLTag: true });
+  const r = await watch(d2.compile(src || '', { layout, themeID, darkThemeID, sketch, pad: 24 }));
+  const svg = await watch(d2.render(r.diagram, { ...r.renderOptions, scale: 1, noXMLTag: true }));
   return { svg, diagram: r.diagram };
 }
 

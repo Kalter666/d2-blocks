@@ -8,6 +8,22 @@
 // the WYSIWYG whenever a round-trip would change a single byte, and the caller
 // shows a plain textarea instead.
 
+/** The heading or first meaningful line used by collapsed 2D and 3D hints. */
+export function markdownHint(value) {
+  const first = String(value ?? '').split(/\r?\n/).find((line) => line.trim())?.trim() ?? '';
+  if (!first) return { text: 'Empty description — open to write', heading: false, empty: true };
+  const heading = /^#{1,6}\s+(.+)$/.exec(first);
+  const text = (heading?.[1] ?? first)
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/[*_~`>|]/g, '')
+    .replace(/^[-+]\s+/, '')
+    .replace(/^\d+\.\s+/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return { text: text || 'Description', heading: !!heading, empty: false };
+}
+
 // ---------------------------------------------------------------- md -> html
 
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);

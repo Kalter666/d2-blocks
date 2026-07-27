@@ -1,0 +1,19 @@
+direction: right
+Creator: Content creator {shape: person}
+Upload: Upload API {shape: rectangle}
+Raw: Raw video storage {shape: stored_data}
+Jobs: Transcode jobs {shape: queue}
+Transcoder: Transcode workers {shape: rectangle}
+Packager: HLS packager {shape: rectangle}
+Origin: Media origin {shape: stored_data}
+CDN: Global CDN {shape: cloud}
+Viewer: Video player {shape: page}
+Creator -> Upload
+Upload -> Raw
+Upload -> Jobs
+Jobs -> Transcoder
+Transcoder -> Raw: read source
+Transcoder -> Packager
+Packager -> Origin
+Origin -> CDN
+CDN -> Viewer

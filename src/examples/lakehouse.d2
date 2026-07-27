@@ -1,0 +1,20 @@
+direction: right
+Batch: Batch sources {shape: cylinder}
+Streams: Streaming sources {shape: queue}
+Ingestion: Unified ingestion {shape: rectangle}
+ObjectStore: Object storage {shape: stored_data}
+Tables: Open table format {shape: document}
+Catalog: Metadata catalog {shape: rectangle}
+SQL: SQL engine {shape: rectangle}
+ML: ML training {shape: rectangle}
+BI: BI tools {shape: page}
+Batch -> Ingestion
+Streams -> Ingestion
+Ingestion -> ObjectStore
+Tables -> ObjectStore
+Catalog -> Tables
+SQL -> Catalog
+ML -> Catalog
+SQL -> BI
+ObjectStore -> SQL
+ObjectStore -> ML

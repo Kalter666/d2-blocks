@@ -1,6 +1,7 @@
 <script>
   import { app } from './store.svelte.js';
   import { index } from './d2.js';
+  import Scene from './Scene.svelte';
 
   let host = $state(null);   // holds the injected SVG
   let view = $state(null);   // scrolling viewport
@@ -40,14 +41,19 @@
     zoom = clamp(zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12));
   }
 
-  /** Scale so the whole diagram fits the viewport — the useful "reset". */
+  /**
+   * Scale so the whole diagram fits the viewport — the useful "reset".
+   *
+   * Measured from the SVG's own width/height, not getBoundingClientRect: the rect
+   * is already scaled by our zoom and, in 3D mode, by the camera tilt, so it would
+   * be answering a different question. `scale: 1` in d2.js guarantees the attributes.
+   */
   function fit() {
     const svg = host?.querySelector('svg');
-    if (!svg) return (zoom = 1);
-    const { width, height } = svg.getBoundingClientRect();
-    const box = view.getBoundingClientRect();
+    const width = svg?.width.baseVal.value, height = svg?.height.baseVal.value;
     if (!width || !height) return (zoom = 1);
-    zoom = clamp(Math.min((box.width - 40) / (width / zoom), (box.height - 40) / (height / zoom)));
+    const box = view.getBoundingClientRect();
+    zoom = clamp(Math.min((box.width - 40) / width, (box.height - 40) / height));
   }
 
   // Drag to pan, but not when starting on a shape — that's a hover target.
@@ -69,7 +75,7 @@
   }
 </script>
 
-<div class="canvas">
+<div class="canvas" class:mode3d={app.look === '3d'}>
   <div
     class="view"
     role="application"
@@ -84,6 +90,10 @@
       {@html app.svg}
     </div>
   </div>
+
+  <!-- Kept mounted but hidden in 3D: Download SVG still works, and Scene.svelte
+       reads each shape's real colour off it rather than duplicating d2's themes. -->
+  {#if app.look === '3d'}<Scene {maps} />{/if}
 
   {#if app.error}
     <p class="error" role="status">{app.error}</p>
@@ -120,6 +130,17 @@
   /* Both directions of the hover link land here. */
   .paper :global(.lit) { filter: drop-shadow(0 0 5px var(--accent)) drop-shadow(0 0 2px var(--accent)); }
   .paper :global(g) { transition: filter 0.12s; }
+
+  /* ------------------------------------------------------------------ 3D mode
+     Scene.svelte takes the whole viewport and draws the diagram with three.js.
+     The SVG stays mounted underneath but hidden: Download SVG still works, and
+     the scene reads each shape's real colour off it, so a style.fill block still
+     decides and d2's theme table is never duplicated. Palette is theme 201,
+     pinned in App.svelte. */
+
+  .mode3d .view { display: none; }
+  /* three has its own camera controls, and the hint under the canvas says so. */
+  .mode3d .zoom { display: none; }
 
   .error {
     position: absolute; inset-block-end: 12px; inset-inline: 12px;

@@ -1,0 +1,27 @@
+direction: right
+Customer: Customer {shape: person}
+App: Delivery app {shape: page}
+Saga: Delivery saga {shape: hexagon}
+Restaurant: Restaurant service {shape: rectangle}
+Payment: Payment service {shape: rectangle}
+Courier: Courier dispatch {shape: rectangle}
+Tracking: Live tracking {shape: stored_data}
+Orders: Order database {shape: cylinder}
+Notifications: Notification stream {shape: queue}
+Customer -> App: place order
+App -> Saga
+Saga -> Restaurant: accept order
+Restaurant -> Saga: accepted
+Saga -> Payment: authorize
+Payment -> Saga: authorized
+Saga -> Courier: find courier
+Courier -> Saga: courier assigned
+Saga -> Orders: confirm order
+Courier -> Tracking: location updates
+Saga -> Notifications: status events
+Notifications -> App
+Restaurant -> Saga: rejected
+Saga -> Payment: void authorization
+Courier -> Saga: no courier found
+Saga -> Restaurant: cancel preparation
+Saga -> Orders: cancel order

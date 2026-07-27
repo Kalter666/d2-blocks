@@ -1,0 +1,17 @@
+direction: right
+User: Resource owner {shape: person}
+Browser: Browser {shape: page}
+Client: Client application {shape: rectangle}
+Auth: Authorization server {shape: hexagon}
+API: Resource server {shape: rectangle}
+UserDB: Identity store {shape: cylinder}
+User -> Browser
+Browser -> Client: start sign-in
+Client -> Auth: authorize request
+Auth -> UserDB: authenticate
+Auth -> Browser: authorization code
+Browser -> Client: redirect with code
+Client -> Auth: code and verifier
+Auth -> Client: access token
+Client -> API: bearer token
+API -> Auth: validate token

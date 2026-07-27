@@ -1,0 +1,20 @@
+direction: right
+Devices: Connected devices {shape: square}
+Broker: MQTT broker {shape: queue}
+Registry: Device registry {shape: cylinder}
+Ingest: Telemetry ingestion {shape: rectangle}
+Rules: Rules engine {shape: diamond}
+TimeSeries: Time-series store {shape: cylinder}
+Alerts: Alert service {shape: rectangle}
+Dashboard: Operations dashboard {shape: page}
+Commands: Command service {shape: rectangle}
+Devices -> Broker: telemetry
+Broker -> Registry: authenticate
+Broker -> Ingest
+Ingest -> Rules
+Ingest -> TimeSeries
+Rules -> Alerts
+TimeSeries -> Dashboard
+Dashboard -> Commands
+Commands -> Broker: device command
+Broker -> Devices

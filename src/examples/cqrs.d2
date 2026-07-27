@@ -1,0 +1,15 @@
+direction: right
+Client: Client {shape: person}
+Commands: Command API {shape: rectangle}
+Domain: Domain model {shape: rectangle}
+EventStore: Event store {shape: cylinder}
+Projector: Projection workers {shape: rectangle}
+ReadDB: Read model {shape: stored_data}
+Queries: Query API {shape: rectangle}
+Client -> Commands: writes
+Commands -> Domain: validate
+Domain -> EventStore: append events
+EventStore -> Projector: event stream
+Projector -> ReadDB: update views
+Client -> Queries: reads
+Queries -> ReadDB

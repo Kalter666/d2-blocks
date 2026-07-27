@@ -1,0 +1,19 @@
+direction: right
+Sources: Source systems {shape: cylinder}
+Ingest: Batch ingestion {shape: rectangle}
+Landing: Raw data lake {shape: stored_data}
+Validate: Data quality checks {shape: diamond}
+Transform: Transformation jobs {shape: rectangle}
+Warehouse: Data warehouse {shape: cylinder}
+Semantic: Semantic layer {shape: rectangle}
+BI: BI dashboards {shape: page}
+Catalog: Data catalog {shape: document}
+Sources -> Ingest
+Ingest -> Landing
+Landing -> Validate
+Validate -> Transform: passed
+Transform -> Warehouse
+Warehouse -> Semantic
+Semantic -> BI
+Landing -> Catalog: metadata
+Warehouse -> Catalog: lineage

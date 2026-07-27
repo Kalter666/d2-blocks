@@ -1,0 +1,17 @@
+direction: right
+Clients: Chat clients {shape: person}
+LoadBalancer: Load balancer {shape: hexagon}
+WebSocket: WebSocket servers {shape: rectangle}
+Presence: Presence service {shape: rectangle}
+Broker: Message broker {shape: queue}
+Fanout: Fan-out workers {shape: rectangle}
+Messages: Message store {shape: cylinder}
+Cache: Session cache {shape: stored_data}
+Clients -> LoadBalancer: WebSocket
+LoadBalancer -> WebSocket
+WebSocket -> Presence: online state
+WebSocket -> Broker: publish
+Broker -> Fanout: consume
+Fanout -> WebSocket: deliver
+Fanout -> Messages: persist
+Presence -> Cache

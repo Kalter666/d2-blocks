@@ -1,0 +1,22 @@
+direction: right
+Users: Global users {shape: person}
+DNS: Global traffic manager {shape: cloud}
+RegionA: Region A {
+  LB: Load balancer {shape: hexagon}
+  App: Application cluster {shape: rectangle}
+  DB: Regional database {shape: cylinder}
+}
+RegionB: Region B {
+  LB: Load balancer {shape: hexagon}
+  App: Application cluster {shape: rectangle}
+  DB: Regional database {shape: cylinder}
+}
+Users -> DNS
+DNS -> RegionA.LB: nearest healthy
+DNS -> RegionB.LB: nearest healthy
+RegionA.LB -> RegionA.App
+RegionA.App -> RegionA.DB
+RegionB.LB -> RegionB.App
+RegionB.App -> RegionB.DB
+RegionA.DB -> RegionB.DB: replicate
+RegionB.DB -> RegionA.DB: replicate

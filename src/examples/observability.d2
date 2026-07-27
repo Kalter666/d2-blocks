@@ -1,0 +1,20 @@
+direction: right
+Apps: Applications {shape: rectangle}
+Agents: Telemetry agents {shape: rectangle}
+Collector: OpenTelemetry collector {shape: hexagon}
+Metrics: Metrics store {shape: cylinder}
+Logs: Log store {shape: stored_data}
+Traces: Trace store {shape: cylinder}
+Dashboards: Dashboards {shape: page}
+Alerts: Alert manager {shape: rectangle}
+OnCall: On-call engineer {shape: person}
+Apps -> Agents: telemetry
+Agents -> Collector
+Collector -> Metrics
+Collector -> Logs
+Collector -> Traces
+Metrics -> Dashboards
+Logs -> Dashboards
+Traces -> Dashboards
+Metrics -> Alerts: rules
+Alerts -> OnCall

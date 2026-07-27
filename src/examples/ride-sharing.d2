@@ -1,0 +1,23 @@
+direction: right
+Rider: Rider app {shape: person}
+Driver: Driver app {shape: person}
+Gateway: Mobile API {shape: hexagon}
+Location: Location service {shape: rectangle}
+GeoIndex: Geospatial index {shape: stored_data}
+Matching: Matching service {shape: rectangle}
+Trips: Trip service {shape: rectangle}
+TripDB: Trip database {shape: cylinder}
+Events: Trip events {shape: queue}
+Notify: Notification service {shape: rectangle}
+Rider -> Gateway
+Driver -> Gateway: GPS updates
+Gateway -> Location
+Location -> GeoIndex
+Gateway -> Matching: request ride
+Matching -> GeoIndex: nearby drivers
+Matching -> Trips
+Trips -> TripDB
+Trips -> Events
+Events -> Notify
+Notify -> Rider
+Notify -> Driver

@@ -1,0 +1,16 @@
+direction: right
+User: User {shape: person}
+CDN: CDN and static site {shape: cloud}
+Gateway: API gateway {shape: hexagon}
+Functions: Request functions {shape: rectangle}
+Database: Managed database {shape: cylinder}
+Queue: Task queue {shape: queue}
+Worker: Worker functions {shape: rectangle}
+Objects: Object storage {shape: stored_data}
+User -> CDN
+User -> Gateway
+Gateway -> Functions
+Functions -> Database
+Functions -> Queue
+Queue -> Worker
+Worker -> Objects

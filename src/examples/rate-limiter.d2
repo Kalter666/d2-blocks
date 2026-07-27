@@ -1,0 +1,15 @@
+direction: right
+Clients: API clients {shape: person}
+Gateway: API gateway {shape: hexagon}
+Limiter: Rate limiter {shape: rectangle}
+Rules: Policy service {shape: rectangle}
+Counters: Distributed counters {shape: stored_data}
+API: Backend API {shape: rectangle}
+Metrics: Metrics stream {shape: queue}
+Clients -> Gateway
+Gateway -> Limiter: check quota
+Limiter -> Rules: load policy
+Limiter -> Counters: atomic increment
+Limiter -> Gateway: allow or reject
+Gateway -> API: allowed request
+Limiter -> Metrics: decisions

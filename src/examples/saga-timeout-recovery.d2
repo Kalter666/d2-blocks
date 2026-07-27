@@ -1,0 +1,27 @@
+direction: right
+Client: Client {shape: person}
+API: Workflow API {shape: rectangle}
+Orchestrator: Durable saga orchestrator {shape: hexagon}
+State: Saga state store {shape: cylinder}
+Timers: Durable timer queue {shape: queue}
+ParticipantA: Participant A {shape: rectangle}
+ParticipantB: Participant B {shape: rectangle}
+Retries: Retry queue {shape: queue}
+DeadLetters: Dead-letter queue {shape: queue}
+Operator: Operations console {shape: page}
+Client -> API: start workflow
+API -> Orchestrator
+Orchestrator -> State: checkpoint step
+Orchestrator -> ParticipantA: command with idempotency key
+ParticipantA -> Orchestrator: success
+Orchestrator -> Timers: schedule deadline
+Orchestrator -> ParticipantB: command with idempotency key
+ParticipantB -> Orchestrator: success or failure
+Timers -> Orchestrator: deadline expired
+Orchestrator -> Retries: retry with backoff
+Retries -> Orchestrator
+Orchestrator -> ParticipantA: compensate
+Orchestrator -> State: mark compensated
+Orchestrator -> DeadLetters: retries exhausted
+DeadLetters -> Operator: manual review
+Operator -> Orchestrator: resume or abort

@@ -1,10 +1,11 @@
 <script>
   import Stack from './Stack.svelte';
   import Canvas from './Canvas.svelte';
+  import Examples from './Examples.svelte';
   import { draw } from './d2.js';
   import { keys, defaultStyle, DIRECTIONS } from './blocks.js';
   import {
-    app, source, add, undo, redo, canUndo, canRedo, save, load, setSource, commit,
+    app, source, add, undo, redo, canUndo, canRedo, save, setSource, commit,
     direction, setDirection,
   } from './store.svelte.js';
 
@@ -19,6 +20,7 @@
   const REPO = 'https://github.com/Kalter666/d2-blocks';
 
   let showCode = $state(true);
+  let showExamples = $state(false);
   let toast = $state('');
   const src = $derived(source());
   const options = $derived(keys(app.blocks));
@@ -29,14 +31,15 @@
   // as format-on-blur.
   let draft = $state(null);
 
-  load();
-
   // Re-render on any change, coalesced. A token drops results that arrive after
   // a newer render has already started.
   let token = 0;
   $effect(() => {
+    const forced = app.appearance;
+    const selectedThemeID = forced === 'dark' ? app.darkTheme : app.theme;
+    const selectedDarkThemeID = forced === 'light' ? app.theme : app.darkTheme;
     const [text, layout, themeID, darkThemeID, sketch] =
-      [src, app.layout, app.theme, app.darkTheme, app.sketch];
+      [src, app.layout, selectedThemeID, selectedDarkThemeID, app.sketch];
     const mine = ++token;
     app.busy = true;
     const timer = setTimeout(async () => {
@@ -87,6 +90,13 @@
     URL.revokeObjectURL(url);
   }
 
+  function loadExample(example) {
+    commit();
+    draft = null;
+    setSource(example.source);
+    flash(`${example.title} loaded`);
+  }
+
   function onKey(e) {
     if (!(e.ctrlKey || e.metaKey) || e.target.matches('input, select, textarea')) return;
     if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
@@ -98,6 +108,8 @@
 
 <header>
   <h1>d2 <span>blocks</span></h1>
+
+  <button class="examples" onclick={() => (showExamples = true)}>▦ Examples</button>
 
   <div class="group">
     <button onclick={undo} disabled={!canUndo()} title="Undo (Ctrl+Z)">↶</button>
@@ -117,14 +129,35 @@
     </select>
   </label>
 
-  <label>theme
-    <select bind:value={app.theme}>
+  <label>look
+    <select bind:value={app.look}>
+      <option value="3d">3D</option>
+      <option value="flat">flat</option>
+    </select>
+  </label>
+
+  <label>appearance
+    <select bind:value={app.appearance}>
+      <option value="system">system</option>
+      <option value="light">light</option>
+      <option value="dark">dark</option>
+    </select>
+  </label>
+
+  <label>light
+    <select value={app.theme} onchange={(e) => {
+      app.theme = Number(e.currentTarget.value);
+      app.appearance = 'light';
+    }}>
       {#each THEMES as [id, name]}<option value={id}>{name}</option>{/each}
     </select>
   </label>
 
   <label>dark
-    <select bind:value={app.darkTheme}>
+    <select value={app.darkTheme} onchange={(e) => {
+      app.darkTheme = Number(e.currentTarget.value);
+      app.appearance = 'dark';
+    }}>
       {#each DARK_THEMES as [id, name]}<option value={id}>{name}</option>{/each}
     </select>
   </label>
@@ -141,7 +174,7 @@
 <main>
   <section class="editor">
     <div class="scroll">
-      <Stack list={app.blocks} root />
+      <Stack bind:list={app.blocks} root />
     </div>
     <div class="palette">
       <button class="add box" onclick={addBox}>+ box</button>
@@ -179,6 +212,7 @@
 </footer>
 
 {#if toast}<div class="toast" role="status">{toast}</div>{/if}
+<Examples bind:open={showExamples} onload={loadExample} />
 
 <style>
   header {
@@ -204,6 +238,7 @@
     font: inherit; font-size: 12px; color: var(--fg);
     padding: 3px 5px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg);
   }
+  select:disabled { opacity: 0.45; }
 
   .group { display: flex; gap: 1px; }
   .group button { border-radius: 0; }
@@ -219,6 +254,7 @@
   header button:disabled { opacity: 0.4; cursor: default; }
   .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   .primary:hover:not(:disabled) { background: var(--accent-dark); border-color: var(--accent-dark); }
+  .examples { font-weight: 650; }
 
   main {
     flex: 1;

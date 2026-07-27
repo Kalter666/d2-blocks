@@ -6,7 +6,7 @@
   // `root` makes this stack fill the scroll area. Without it the empty space
   // below the last block belongs to the container, which has no drop handlers —
   // so there'd be nowhere to aim when dragging a block back out of a group.
-  let { list, path = '', root = false } = $props();
+  let { list = $bindable(), path = '', root = false } = $props();
 
   let el = $state(null);
   let at = $state(-1);          // insertion index the indicator is showing, -1 for none
@@ -68,7 +68,10 @@
 >
   {#each shown as block, i (block)}
     {#if at === i}<div class="indicator"></div>{/if}
-    <Block {block} {path} siblings={list} />
+    <!-- bind:, though Block never reassigns it: passing a $state object as a plain
+         prop makes this component its owner, and Svelte's dev-only ownership check
+         then flags every field a Block edits. Binding says the edits are expected. -->
+    <Block bind:block={list[listIndex(i)]} {path} siblings={list} />
   {/each}
   {#if at >= shown.length}<div class="indicator"></div>{/if}
   {#if shown.length === 0}<p class="hint">drop blocks here</p>{/if}

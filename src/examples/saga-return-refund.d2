@@ -1,0 +1,28 @@
+direction: right
+Customer: Customer {shape: person}
+ReturnsAPI: Returns API {shape: rectangle}
+Saga: Return saga {shape: hexagon}
+Orders: Order service {shape: rectangle}
+Warehouse: Warehouse service {shape: rectangle}
+Carrier: Shipping carrier {shape: cloud}
+Refunds: Refund service {shape: rectangle}
+Inventory: Inventory service {shape: rectangle}
+ReturnsDB: Returns database {shape: cylinder}
+Customer -> ReturnsAPI: request return
+ReturnsAPI -> Saga
+Saga -> Orders: validate return window
+Orders -> Saga: return approved
+Saga -> Carrier: create return label
+Carrier -> Saga: label created
+Saga -> ReturnsDB: awaiting parcel
+Warehouse -> Saga: parcel received
+Saga -> Warehouse: inspect item
+Warehouse -> Saga: item accepted
+Saga -> Refunds: issue refund
+Refunds -> Saga: refund completed
+Saga -> Inventory: restock item
+Saga -> ReturnsDB: mark complete
+Orders -> Saga: return rejected
+Warehouse -> Saga: item rejected
+Saga -> Refunds: cancel refund
+Saga -> ReturnsDB: mark rejected

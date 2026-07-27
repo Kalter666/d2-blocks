@@ -1,0 +1,18 @@
+direction: right
+User: User and device {shape: person}
+Proxy: Identity-aware proxy {shape: hexagon}
+Identity: Identity provider {shape: rectangle}
+Posture: Device posture service {shape: rectangle}
+Policy: Policy decision point {shape: diamond}
+App: Protected application {shape: rectangle}
+Audit: Audit log {shape: stored_data}
+User -> Proxy: request
+Proxy -> Identity: authenticate
+Proxy -> Posture: device signals
+Identity -> Policy: identity claims
+Posture -> Policy: trust signals
+Proxy -> Policy: access context
+Policy -> Proxy: allow or deny
+Proxy -> App: authorized request
+Proxy -> Audit: decision
+App -> Audit: activity

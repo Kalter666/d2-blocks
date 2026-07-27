@@ -1,13 +1,19 @@
 <script>
   import Stack from './Stack.svelte';
   import Rich from './Rich.svelte';
+  import { markdownHint } from './md.js';
   import { app, commit, del, reorder } from './store.svelte.js';
   import {
     keys, safeKey, renameKey, collides, defaultStyle,
     SHAPES, STYLE_PROPS, DIRECTIONS, ARROWS,
   } from './blocks.js';
 
-  let { block, path = '', siblings = [] } = $props();
+  let { block = $bindable(), path = '', siblings = [] } = $props();
+
+  // Description disclosure is deliberately local to this block. It is not an
+  // accordion: any number of notes and connection descriptions can stay open.
+  let mdOpen = $state(false);
+  const mdSummary = $derived(markdownHint(block.label));
 
   const options = $derived(keys(app.blocks));
   const named = $derived(block.type === 'box' || block.type === 'group');
@@ -49,8 +55,13 @@
   // dropping what the user wrote.
   function toggleMd() {
     commit();
-    if (block.md) delete block.md;
-    else block.md = true;
+    if (block.md) {
+      delete block.md;
+      mdOpen = false;
+    } else {
+      block.md = true;
+      mdOpen = false;
+    }
   }
 
   const spec = $derived(STYLE_PROPS[block.prop] ?? {});
@@ -106,7 +117,7 @@
       {/if}
       <span class="verb dim">shaped</span>
       <select class="slot" bind:value={block.shape} onfocus={commit}>
-        {#each SHAPES as s}<option value={s}>{s || (block.md ? 'text' : 'default')}</option>{/each}
+        {#each SHAPES as [value, role]}<option {value} title="d2: {value || 'no shape'}">{!value && block.md ? 'Text only (no box)' : role}</option>{/each}
       </select>
       <button class="chip" class:on={block.md} onclick={toggleMd}
         title={block.md ? 'Back to a plain label' : 'Rich text label (markdown)'}>¶</button>
@@ -184,12 +195,23 @@
   {#if problem}<p class="problem">{problem}</p>{/if}
 
   {#if (block.type === 'box' || block.type === 'link') && block.md}
-    <Rich bind:value={block.label} />
+    <button
+      class="md-summary"
+      class:empty={!block.label}
+      onclick={() => (mdOpen = !mdOpen)}
+      aria-expanded={mdOpen}
+      title={mdOpen ? 'Close description' : 'Open description'}
+    >
+      <span class="md-chevron" class:open={mdOpen} aria-hidden="true">›</span>
+      <span class="md-kind">{mdSummary.heading ? 'heading' : 'description'}</span>
+      <span class="md-preview">{mdSummary.text}</span>
+    </button>
+    {#if mdOpen}<Rich bind:value={block.label} />{/if}
   {/if}
 
   {#if block.type === 'group'}
     <div class="children">
-      <Stack list={block.children} path={`${path}${safeKey(block.name)}.`} />
+      <Stack bind:list={block.children} path={`${path}${safeKey(block.name)}.`} />
     </div>
   {/if}
 </div>
@@ -281,6 +303,54 @@
   }
   .chip:hover { color: var(--fg); }
   .chip.on { background: var(--tint); border-color: var(--tint); color: #fff; }
+
+  .md-summary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-sizing: border-box;
+    inline-size: calc(100% - 32px);
+    min-inline-size: 0;
+    margin: 0 8px 8px 24px;
+    padding: 5px 8px;
+    border: 1px solid color-mix(in oklab, var(--tint) 25%, var(--line));
+    border-radius: 6px;
+    background: color-mix(in oklab, var(--tint) 5%, var(--bg));
+    color: var(--fg);
+    font: inherit;
+    font-size: 12px;
+    text-align: start;
+    cursor: pointer;
+  }
+  .md-summary:hover {
+    border-color: color-mix(in oklab, var(--tint) 55%, var(--line));
+    background: color-mix(in oklab, var(--tint) 9%, var(--bg));
+  }
+  .md-summary:focus-visible { outline: 2px solid var(--tint); outline-offset: 1px; }
+  .md-chevron {
+    flex: none;
+    color: var(--tint);
+    font-size: 18px;
+    line-height: 0.8;
+    transition: transform 0.14s ease;
+  }
+  .md-chevron.open { transform: rotate(90deg); }
+  .md-kind {
+    flex: none;
+    color: var(--tint);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .md-preview {
+    min-inline-size: 0;
+    overflow: hidden;
+    color: var(--muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .md-summary.empty .md-preview { font-style: italic; }
 
   .raw-text {
     font-family: var(--mono);

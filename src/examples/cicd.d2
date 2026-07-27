@@ -1,0 +1,21 @@
+direction: right
+Developer: Developer {shape: person}
+Git: Source repository {shape: document}
+CI: CI runner {shape: rectangle}
+Tests: Test suite {shape: diamond}
+Scan: Security scan {shape: rectangle}
+Registry: Artifact registry {shape: package}
+GitOps: Deployment config {shape: document}
+CD: CD controller {shape: rectangle}
+Production: Production cluster {shape: cloud}
+Monitor: Monitoring {shape: rectangle}
+Developer -> Git: push
+Git -> CI: webhook
+CI -> Tests
+Tests -> Scan: passed
+Scan -> Registry
+Registry -> GitOps: release digest
+GitOps -> CD
+CD -> Production
+Production -> Monitor
+Monitor -> CD: rollback signal

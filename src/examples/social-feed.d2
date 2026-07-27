@@ -1,0 +1,20 @@
+direction: right
+User: User {shape: person}
+API: Feed API {shape: rectangle}
+Posts: Post service {shape: rectangle}
+Graph: Social graph service {shape: rectangle}
+PostDB: Post database {shape: cylinder}
+Events: Post events {shape: queue}
+Fanout: Fan-out workers {shape: rectangle}
+FeedCache: Feed cache {shape: stored_data}
+Celebrities: On-read ranking {shape: rectangle}
+User -> API: read feed
+User -> Posts: publish
+Posts -> PostDB
+Posts -> Events
+Events -> Fanout
+Fanout -> Graph: followers
+Fanout -> FeedCache
+API -> FeedCache
+API -> Celebrities
+Celebrities -> PostDB

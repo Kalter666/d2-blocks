@@ -1,0 +1,26 @@
+direction: right
+Customer: Customer {shape: person}
+Orders: Order service {shape: rectangle}
+OrderDB: Order database {shape: cylinder}
+Events: Event broker {shape: queue}
+Inventory: Inventory service {shape: rectangle}
+Payments: Payment service {shape: rectangle}
+Shipping: Shipping service {shape: rectangle}
+Notifications: Notification service {shape: rectangle}
+DeadLetters: Dead-letter queue {shape: queue}
+Customer -> Orders: place order
+Orders -> OrderDB: create pending
+Orders -> Events: OrderCreated
+Events -> Inventory: reserve stock
+Inventory -> Events: InventoryReserved
+Events -> Payments: authorize payment
+Payments -> Events: PaymentAuthorized
+Events -> Shipping: arrange shipment
+Shipping -> Events: ShipmentCreated
+Events -> Orders: complete order
+Events -> Notifications: notify customer
+Inventory -> Events: InventoryRejected
+Payments -> Events: PaymentFailed
+Events -> Inventory: release reservation
+Events -> Orders: cancel order
+Events -> DeadLetters: unhandled event

@@ -1,0 +1,19 @@
+direction: right
+User: User {shape: person}
+Edge: Edge proxy {shape: cloud}
+Redirect: Redirect service {shape: rectangle}
+Create: Link creation API {shape: rectangle}
+IDs: ID generator {shape: rectangle}
+Cache: URL cache {shape: stored_data}
+Links: Link database {shape: cylinder}
+Clicks: Click events {shape: queue}
+Analytics: Analytics workers {shape: rectangle}
+User -> Edge
+Edge -> Redirect: short URL
+Edge -> Create: create URL
+Redirect -> Cache: lookup
+Cache -> Links: miss
+Create -> IDs
+Create -> Links
+Redirect -> Clicks
+Clicks -> Analytics

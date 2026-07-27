@@ -8,10 +8,35 @@
 //   3. lines parse didn't understand survive byte-for-byte  (always)
 
 export const ARROWS = ['->', '<-', '--', '<->'];
+
+/**
+ * d2's shapes, labelled by what people actually draw with them — nobody picks
+ * `stored_data` on purpose, they're looking for a disk. The value is still d2's
+ * name, so the source pane and every round-trip are unaffected; only the word in
+ * the dropdown changes. Common roles first, geometry-for-its-own-sake last.
+ *
+ * All 18 stay listed even where the role is thin (square, circle): dropping one
+ * would leave the select blank for a pasted file that uses it.
+ */
 export const SHAPES = [
-  '', 'rectangle', 'square', 'page', 'parallelogram', 'document', 'cylinder',
-  'queue', 'package', 'step', 'callout', 'stored_data', 'person', 'diamond',
-  'oval', 'circle', 'hexagon', 'cloud',
+  ['', 'Box (default)'],
+  ['rectangle', 'Service'],
+  ['cylinder', 'Database'],
+  ['queue', 'Queue / stream'],
+  ['stored_data', 'Storage / volume'],
+  ['person', 'User / actor'],
+  ['cloud', 'Cloud / external'],
+  ['package', 'Package / module'],
+  ['hexagon', 'Gateway / hub'],
+  ['diamond', 'Decision'],
+  ['step', 'Process step'],
+  ['oval', 'Start / end'],
+  ['circle', 'State'],
+  ['document', 'Document / file'],
+  ['page', 'Page / screen'],
+  ['parallelogram', 'Input / output'],
+  ['callout', 'Note / callout'],
+  ['square', 'Component (square)'],
 ];
 /**
  * Every style property d2 accepts, with the editor it needs and a default that
@@ -126,7 +151,9 @@ function line(b, scope) {
       return `direction: ${b.value}`;
     case 'box': {
       const head = b.label ? `${q(b.name)}: ${qLabel(b.label)}` : q(b.name);
-      return b.shape ? `${head}${b.label ? ' ' : ': '}{shape: ${b.shape}}` : head;
+      return b.shape
+        ? `${head}${b.label ? ' ' : ': '}{shape: ${b.shape}}`
+        : head;
     }
     case 'link': {
       const conn = `${relativize(b.src, scope)} ${b.arrow} ${relativize(b.dst, scope)}`;
@@ -332,14 +359,19 @@ function splitLabel(head) {
  * Fully-qualified keys of every box and group, for the dropdowns.
  * Quoted the same way serialize quotes them — a box called `a.b` is the key
  * `"a.b"`, and feeding the bare name to a link would nest instead of connect.
- * Returns { key, name, depth } so the UI can show the friendly name.
+ * Returns the source shape too: d2 normalises some compiled types (`circle`
+ * becomes `oval`), while the 3D renderer must preserve the role the user chose.
  */
 export function keys(blocks, prefix = '', depth = 0) {
   const out = [];
   for (const b of blocks) {
     if (b.type !== 'box' && b.type !== 'group') continue;
     const key = prefix + q(b.name);
-    out.push({ key, name: b.name, depth });
+    out.push({
+      key, name: b.name, depth,
+      shape: b.type === 'box' ? b.shape : undefined,
+      md: b.type === 'box' ? !!b.md : undefined,
+    });
     if (b.type === 'group') out.push(...keys(b.children, `${key}.`, depth + 1));
   }
   return out;

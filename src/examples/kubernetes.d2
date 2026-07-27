@@ -1,0 +1,22 @@
+direction: right
+Internet: Internet {shape: cloud}
+Cluster: Kubernetes cluster {
+  Ingress: Ingress controller {shape: hexagon}
+  Web: Web deployment {shape: rectangle}
+  API: API deployment {shape: rectangle}
+  Worker: Worker deployment {shape: rectangle}
+  Queue: Message queue {shape: queue}
+  DB: Stateful database {shape: cylinder}
+  Operator: Database operator {shape: rectangle}
+}
+Registry: Container registry {shape: package}
+Internet -> Cluster.Ingress
+Cluster.Ingress -> Cluster.Web
+Cluster.Web -> Cluster.API
+Cluster.API -> Cluster.Queue
+Cluster.Queue -> Cluster.Worker
+Cluster.API -> Cluster.DB
+Cluster.Operator -> Cluster.DB
+Registry -> Cluster.Web
+Registry -> Cluster.API
+Registry -> Cluster.Worker

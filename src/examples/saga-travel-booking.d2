@@ -1,0 +1,28 @@
+direction: right
+Traveler: Traveler {shape: person}
+BookingAPI: Booking API {shape: rectangle}
+Coordinator: Trip saga coordinator {shape: hexagon}
+Flight: Flight service {shape: rectangle}
+Hotel: Hotel service {shape: rectangle}
+Car: Car rental service {shape: rectangle}
+Payment: Payment service {shape: rectangle}
+Trips: Trip database {shape: cylinder}
+Timeouts: Timeout queue {shape: queue}
+Traveler -> BookingAPI: book itinerary
+BookingAPI -> Coordinator: start saga
+Coordinator -> Flight: hold seat
+Flight -> Coordinator: flight held
+Coordinator -> Hotel: hold room
+Hotel -> Coordinator: room held
+Coordinator -> Car: hold vehicle
+Car -> Coordinator: vehicle held
+Coordinator -> Payment: capture total
+Payment -> Coordinator: paid
+Coordinator -> Trips: confirm itinerary
+Coordinator -> Timeouts: schedule expiry
+Hotel -> Coordinator: room unavailable
+Coordinator -> Flight: cancel seat
+Car -> Coordinator: vehicle unavailable
+Coordinator -> Hotel: cancel room
+Payment -> Coordinator: payment failed
+Coordinator -> Car: cancel vehicle
