@@ -1,4 +1,5 @@
 import { empty, serialize, parse, remove, moveInto, reorderIn } from './blocks.js';
+import { toMermaid, fromMermaid } from './mermaid.js';
 
 export const app = $state({
   blocks: empty(),
@@ -137,4 +138,13 @@ export function load() {
  */
 export function setSource(text) {
   app.blocks = parse(text);
+}
+
+/** Export the current diagram as mermaid flowchart text. */
+export const mermaid = () => toMermaid(app.blocks);
+
+/** Replace the tree from pasted mermaid. Throws (undoably) on non-flowcharts. */
+export function importMermaid(text) {
+  commit();
+  app.blocks = fromMermaid(text);
 }
