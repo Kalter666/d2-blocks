@@ -1,4 +1,5 @@
 import { D2 } from '@terrastruct/d2';
+import { sanitize } from './sanitize.js';
 
 // One instance, one worker — until one dies. d2 runs as Go compiled to wasm in a
 // web worker, and a panic in there takes the worker with it *silently*: no error
@@ -36,7 +37,7 @@ function watch(work) {
 export async function draw(src, { layout = 'dagre', themeID = 0, darkThemeID = 200, sketch = false } = {}) {
   const r = await watch(d2.compile(src || '', { layout, themeID, darkThemeID, sketch, pad: 24 }));
   const svg = await watch(d2.render(r.diagram, { ...r.renderOptions, scale: 1, noXMLTag: true }));
-  return { svg, diagram: r.diagram };
+  return { svg: sanitize(svg), diagram: r.diagram };
 }
 
 /**

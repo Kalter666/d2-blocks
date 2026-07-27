@@ -206,6 +206,14 @@ pipeline and no hit-testing geometry.
   can't refuse a keystroke without making `authx` untypeable.
 - **Nesting is drag-only.** Arrow keys on a block's grip reorder it within its
   list; moving a block *into* a group needs a mouse.
+- **A pasted diagram is untrusted markup.** d2 copies raw HTML out of a markdown
+  label straight into a `<foreignObject>`, and the canvas mounts its SVG with
+  `{@html}` — so `sanitize()` in `src/sanitize.js` strips event handlers, script
+  and frame elements, and any URL scheme that isn't http(s), mailto, a fragment or
+  a data image. Without it, `x: |md <img src=y onerror="…"> |` in a file someone
+  sent you would run on this origin. There is no Content-Security-Policy header:
+  Pages serves static files only, and the d2 worker needs `wasm-unsafe-eval` and a
+  blob worker, so a meta CSP tight enough to be worth having would break it.
 - **The examples are inlined, not fetched.** Every bundled `.d2` file ships in the
   JavaScript bundle, which is why the gallery opens instantly and why adding a
   hundred more would need `import.meta.glob` without `eager`.
