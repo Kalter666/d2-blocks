@@ -7,6 +7,7 @@ export const app = $state({
   theme: 0,
   darkTheme: 200,
   appearance: 'system', // 'system' | 'light' | 'dark'
+  locale: 'en',  // 'en' | 'ru' — see src/i18n; main.js resolves the initial value
   sketch: false,
   look: '3d',    // '3d' | 'flat' — see Canvas.svelte and Scene.svelte
   hover: null,   // d2 id of the shape/connection under the pointer, either side
@@ -109,7 +110,7 @@ export function save() {
   if (!loaded) return;
   localStorage.setItem(KEY, JSON.stringify({
     src: source(), layout: app.layout, theme: app.theme, darkTheme: app.darkTheme,
-    appearance: app.appearance, sketch: app.sketch, look: app.look,
+    appearance: app.appearance, locale: app.locale, sketch: app.sketch, look: app.look,
   }));
 }
 
@@ -122,6 +123,7 @@ export function load() {
     app.theme = saved.theme ?? app.theme;
     app.darkTheme = saved.darkTheme ?? app.darkTheme;
     app.appearance = saved.appearance ?? app.appearance;
+    app.locale = saved.locale ?? app.locale;
     app.sketch = saved.sketch ?? app.sketch;
     app.look = saved.look ?? app.look;
   } catch {

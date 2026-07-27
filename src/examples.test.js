@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { D2 } from '@terrastruct/d2';
 import { readFile, readdir } from 'node:fs/promises';
 import { EXAMPLE_DEFINITIONS, EXAMPLE_CATEGORIES } from './examples/catalog.js';
+import en from './i18n/en.js';
 import { parse, serialize } from './blocks.js';
 
 let d2;
@@ -18,10 +19,12 @@ test('the gallery contains a substantial, well-categorized example collection', 
     EXAMPLE_DEFINITIONS.length,
   );
   for (const example of EXAMPLE_DEFINITIONS) {
-    assert.ok(example.title);
     assert.ok(EXAMPLE_CATEGORIES.includes(example.category), example.id);
-    assert.ok(example.description);
-    assert.ok(example.tags.length >= 2, example.id);
+    // Display text lives in the i18n bundle now (en is the source of truth).
+    const text = en.examples[example.id];
+    assert.ok(text?.title, example.id);
+    assert.ok(text?.description, example.id);
+    assert.ok(text?.tags.length >= 2, example.id);
   }
 });
 

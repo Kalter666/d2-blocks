@@ -12,6 +12,7 @@
   import { app } from './store.svelte.js';
   import { keys } from './blocks.js';
   import { markdownHint } from './md.js';
+  import { t } from './i18n/index.svelte.js';
   import { familyOf, heightOf, bodyFor, resolvedType } from './models.js';
 
   let { maps } = $props();
@@ -1548,8 +1549,8 @@
 
 <div class="stage" bind:this={box}>
   <canvas bind:this={canvas}></canvas>
-  <button class="reset" onclick={fit} title="Frame the whole diagram">⤢</button>
-  <p class="hint">drag to orbit · scroll to zoom · right-drag to pan · click ¶ for description</p>
+  <button class="reset" onclick={fit} title={t('scene.frame')}>⤢</button>
+  <p class="hint">{t('scene.hint')}</p>
 </div>
 
 <style>

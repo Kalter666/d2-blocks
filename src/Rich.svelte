@@ -1,6 +1,7 @@
 <script>
   import { toHtml, toMd, rich } from './md.js';
   import { commit } from './store.svelte.js';
+  import { t } from './i18n/index.svelte.js';
 
   let { value = $bindable('') } = $props();
 
@@ -42,7 +43,7 @@
   }
 
   function link() {
-    const url = prompt('Link to:');
+    const url = prompt(t('rich.linkPrompt'));
     if (url) cmd('createLink', url);
   }
 
@@ -77,15 +78,16 @@
     last = null;
   }
 
+  // second field is an i18n key, resolved to a tooltip at render (so it follows the locale).
   const TOOLS = [
-    ['B', 'Bold', () => cmd('bold'), 'b'],
-    ['I', 'Italic', () => cmd('italic'), 'i'],
-    ['<>', 'Code', code, ''],
-    ['H1', 'Heading', () => cmd('formatBlock', '<h1>'), ''],
-    ['H2', 'Subheading', () => cmd('formatBlock', '<h2>'), ''],
-    ['•', 'Bullet list', () => cmd('insertUnorderedList'), ''],
-    ['1.', 'Numbered list', () => cmd('insertOrderedList'), ''],
-    ['🔗', 'Link', link, ''],
+    ['B', 'rich.tools.bold', () => cmd('bold'), 'b'],
+    ['I', 'rich.tools.italic', () => cmd('italic'), 'i'],
+    ['<>', 'rich.tools.code', code, ''],
+    ['H1', 'rich.tools.heading', () => cmd('formatBlock', '<h1>'), ''],
+    ['H2', 'rich.tools.subheading', () => cmd('formatBlock', '<h2>'), ''],
+    ['•', 'rich.tools.bulletList', () => cmd('insertUnorderedList'), ''],
+    ['1.', 'rich.tools.numberedList', () => cmd('insertOrderedList'), ''],
+    ['🔗', 'rich.tools.link', link, ''],
   ];
 </script>
 
@@ -95,11 +97,11 @@
       {#each TOOLS as [glyph, title, run, style]}
         <!-- mousedown, not click: the default would blur the editor and throw
              away the selection execCommand is about to act on. -->
-        <button title={title} onmousedown={(e) => e.preventDefault()} onclick={run}
+        <button title={t(title)} onmousedown={(e) => e.preventDefault()} onclick={run}
           style:font-weight={style === 'b' ? '700' : null}
           style:font-style={style === 'i' ? 'italic' : null}>{glyph}</button>
       {/each}
-      <button class="grow" title={big ? 'Shrink back into the block' : 'Edit in a bigger window'}
+      <button class="grow" title={big ? t('rich.grow.shrink') : t('rich.grow.expand')}
         onmousedown={(e) => e.preventDefault()} onclick={() => expand(!big)}>{big ? '⤡' : '⤢'}</button>
     </div>
 
@@ -110,17 +112,17 @@
       role="textbox"
       tabindex="0"
       aria-multiline="true"
-      aria-label="Rich text"
+      aria-label={t('rich.aria.rich')}
       spellcheck="false"
       oninput={pull}
       onpaste={onPaste}
       onfocus={commit}
     ></div>
   {:else}
-    <textarea class="body plain" bind:value spellcheck="false" aria-label="Markdown" onfocus={commit}></textarea>
+    <textarea class="body plain" bind:value spellcheck="false" aria-label={t('rich.aria.markdown')} onfocus={commit}></textarea>
     <p class="hint">
-      Formatting the toolbar can't show — editing as markdown.
-      <button onclick={convert}>reformat &amp; edit visually</button>
+      {t('rich.hint')}
+      <button onclick={convert}>{t('rich.reformat')}</button>
     </p>
   {/if}
 {/snippet}
@@ -129,7 +131,7 @@
   <!-- Native <dialog>: Escape, the backdrop and focus trapping all come free. -->
   <dialog bind:this={dlg} onclose={() => expand(false)}>
     <div class="rich full">{@render editor()}</div>
-    <form method="dialog"><button class="done">Done</button></form>
+    <form method="dialog"><button class="done">{t('rich.done')}</button></form>
   </dialog>
 {:else}
   <div class="rich">{@render editor()}</div>

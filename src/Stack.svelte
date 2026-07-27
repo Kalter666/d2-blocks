@@ -2,6 +2,7 @@
   import Block from './Block.svelte';
   import { app, move } from './store.svelte.js';
   import { canMoveInto } from './blocks.js';
+  import { t } from './i18n/index.svelte.js';
 
   // `root` makes this stack fill the scroll area. Without it the empty space
   // below the last block belongs to the container, which has no drop handlers —
@@ -74,7 +75,7 @@
     <Block bind:block={list[listIndex(i)]} {path} siblings={list} />
   {/each}
   {#if at >= shown.length}<div class="indicator"></div>{/if}
-  {#if shown.length === 0}<p class="hint">drop blocks here</p>{/if}
+  {#if shown.length === 0}<p class="hint">{t('stack.dropHere')}</p>{/if}
 </div>
 
 <style>

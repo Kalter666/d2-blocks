@@ -1,0 +1,239 @@
+// English bundle. One file per language holds everything for that language —
+// UI strings (flat dotted keys), catalog category labels, and per-example text —
+// so adding a language or fixing a phrase touches exactly one file. en.js is the
+// source of truth: t() falls back to it for any key a translation is missing.
+export default {
+  ui: {
+    // document / meta (set from main.js after the locale resolves)
+    'meta.title': 'd2 blocks — build diagrams, get code',
+    'meta.description': 'Assemble diagrams from blocks. Get clean d2 source you can put in a pull request.',
+
+    // toolbar
+    'toolbar.examples': 'Examples',
+    'toolbar.undo': 'Undo (Ctrl+Z)',
+    'toolbar.redo': 'Redo (Ctrl+Shift+Z)',
+    'toolbar.flow': 'flow',
+    'toolbar.layout': 'layout',
+    'toolbar.look': 'look',
+    'toolbar.appearance': 'appearance',
+    'toolbar.light': 'light',
+    'toolbar.dark': 'dark',
+    'toolbar.sketch': 'sketch',
+    'toolbar.language': 'language',
+    'toolbar.busy': 'drawing…',
+    'toolbar.importMermaid': 'Import Mermaid',
+    'toolbar.copyMermaid': 'Copy Mermaid',
+    'toolbar.copyD2': 'Copy d2',
+    'toolbar.downloadSvg': 'Download SVG',
+    'look.3d': '3D',
+    'look.flat': 'flat',
+    'appearance.system': 'system',
+    'appearance.light': 'light',
+    'appearance.dark': 'dark',
+
+    // theme names, keyed by d2 theme id
+    'theme.0': 'Neutral',
+    'theme.1': 'Grey',
+    'theme.3': 'Terrastruct',
+    'theme.4': 'Cool classics',
+    'theme.5': 'Mixed berry',
+    'theme.6': 'Grape soda',
+    'theme.7': 'Aubergine',
+    'theme.8': 'Colourblind clear',
+    'theme.100': 'Vanilla nitro',
+    'theme.302': 'Origami',
+    'theme.300': 'Terminal',
+    'theme.200': 'Dark mauve',
+    'theme.201': 'Dark Terrastruct',
+    'theme.301': 'Terminal grey',
+
+    // palette (kept identical to the button glyphs the e2e suite locates by)
+    'palette.box': '+ box',
+    'palette.group': '+ group',
+    'palette.connect': '+ connect',
+    'palette.style': '+ style',
+
+    // d2 source drawer / footer
+    'source.label': 'd2 source',
+    'source.note': 'edit or paste — the blocks follow',
+    'source.aria': 'd2 source',
+    'footer.source': 'source',
+
+    // toasts
+    'toast.copiedD2': 'd2 copied to clipboard',
+    'toast.copiedMermaid': 'mermaid copied to clipboard',
+    'toast.exampleLoaded': '{title} loaded',
+    'toast.mermaidImported': 'mermaid imported',
+
+    // block editor — verbs and slots
+    'block.verb.box': 'box',
+    'block.verb.group': 'group',
+    'block.verb.connect': 'connect',
+    'block.verb.style': 'style',
+    'block.verb.direction': 'lay out',
+    'block.verb.raw': 'd2',
+    'block.labelled': 'labelled',
+    'block.shaped': 'shaped',
+    'placeholder.name': 'name',
+    'placeholder.sameAsName': 'same as name',
+    'placeholder.nothing': 'nothing',
+    'placeholder.hex': '#rrggbb',
+    'placeholder.value': 'value',
+    // validation
+    'block.needsName': 'Needs a name.',
+    'block.duplicate': 'Another {kind} here is already called that — d2 will merge them.',
+    // grip / drag
+    'block.grip': 'Drag to move, or arrow keys to reorder',
+    'block.move': 'Move this {kind} block',
+    // rich-label toggle
+    'block.md.on': 'Rich text label (markdown)',
+    'block.md.off': 'Back to a plain label',
+    // shape dropdown
+    'shape.textOnly': 'Text only (no box)',
+    // number ranges / bool
+    'block.range.min': '{min} or more',
+    'block.range.minMax': '{min}–{max}',
+    'block.yes': 'yes',
+    'block.no': 'no',
+    // style colour swatch
+    'block.colourAria': '{prop} colour',
+    // delete + description disclosure
+    'block.delete': 'Delete this block',
+    'block.desc.open': 'Open description',
+    'block.desc.close': 'Close description',
+    'block.mdKind.heading': 'heading',
+    'block.mdKind.description': 'description',
+    'block.descEmpty': 'Empty description — open to write',
+
+    // shape role labels (value '' -> shape.default; d2 shape name otherwise)
+    'shape.default': 'Box (default)',
+    'shape.rectangle': 'Service',
+    'shape.cylinder': 'Database',
+    'shape.queue': 'Queue / stream',
+    'shape.stored_data': 'Storage / volume',
+    'shape.person': 'User / actor',
+    'shape.cloud': 'Cloud / external',
+    'shape.package': 'Package / module',
+    'shape.hexagon': 'Gateway / hub',
+    'shape.diamond': 'Decision',
+    'shape.step': 'Process step',
+    'shape.oval': 'Start / end',
+    'shape.circle': 'State',
+    'shape.document': 'Document / file',
+    'shape.page': 'Page / screen',
+    'shape.parallelogram': 'Input / output',
+    'shape.callout': 'Note / callout',
+    'shape.square': 'Component (square)',
+
+    // stack empty state
+    'stack.dropHere': 'drop blocks here',
+
+    // canvas
+    'canvas.aria': 'Diagram preview. Drag to pan, Ctrl and scroll to zoom.',
+    'canvas.zoomOut': 'Zoom out',
+    'canvas.reset': 'Reset to 100%',
+    'canvas.zoomIn': 'Zoom in',
+    'canvas.fit': 'Fit to window',
+
+    // 3D scene
+    'scene.frame': 'Frame the whole diagram',
+    'scene.hint': 'drag to orbit · scroll to zoom · right-drag to pan · click ¶ for description',
+
+    // examples modal
+    'examples.title': 'System design examples',
+    'examples.subtitle': 'Start with a proven architecture, then edit every block and connection.',
+    'examples.close': 'Close examples',
+    'examples.searchPlaceholder': 'Search examples…',
+    'examples.searchAria': 'Search examples',
+    'examples.categoriesAria': 'Example categories',
+    'examples.all': 'All',
+    'examples.count.one': '{n} example',
+    'examples.count.few': '{n} examples',
+    'examples.count.many': '{n} examples',
+    'examples.count.other': '{n} examples',
+    'examples.empty': 'No examples match “{query}”.',
+    'examples.editable': 'fully editable',
+    'examples.previewAria': '{title} diagram preview',
+    'examples.previewUnavailable': 'Preview unavailable',
+    'examples.drawingPreview': 'drawing preview…',
+    'examples.use': 'Use this example',
+    'examples.footnote': 'Loading is undoable and does not change your layout or theme.',
+
+    // mermaid import modal
+    'mermaid.title': 'Import mermaid',
+    'mermaid.subtitle': "Paste a mermaid flowchart. The preview shows what you'll get as blocks.",
+    'mermaid.close': 'Close',
+    'mermaid.sourceAria': 'Mermaid source',
+    'mermaid.previewAria': 'Import preview',
+    'mermaid.drawingPreview': 'drawing preview…',
+    'mermaid.pastePrompt': 'paste mermaid to preview',
+    'mermaid.import': 'Import',
+    'mermaid.footnote': 'Only flowcharts import. Import is undoable; layout and theme are unchanged.',
+
+    // rich-text editor
+    'rich.tools.bold': 'Bold',
+    'rich.tools.italic': 'Italic',
+    'rich.tools.code': 'Code',
+    'rich.tools.heading': 'Heading',
+    'rich.tools.subheading': 'Subheading',
+    'rich.tools.bulletList': 'Bullet list',
+    'rich.tools.numberedList': 'Numbered list',
+    'rich.tools.link': 'Link',
+    'rich.grow.expand': 'Edit in a bigger window',
+    'rich.grow.shrink': 'Shrink back into the block',
+    'rich.linkPrompt': 'Link to:',
+    'rich.aria.rich': 'Rich text',
+    'rich.aria.markdown': 'Markdown',
+    'rich.hint': "Formatting the toolbar can't show — editing as markdown.",
+    'rich.reformat': 'reformat & edit visually',
+    'rich.done': 'Done',
+  },
+
+  // catalog category labels (canonical name -> display)
+  categories: {
+    'Web & apps': 'Web & apps',
+    'Distributed systems': 'Distributed systems',
+    'Data & AI': 'Data & AI',
+    'Cloud & operations': 'Cloud & operations',
+    'Security': 'Security',
+  },
+
+  // per-example text, keyed by catalog id. id + category live in catalog.js.
+  examples: {
+    'three-tier': { title: 'Three-tier web app', description: 'A classic web, application, and data architecture.', tags: ['beginner', 'web', 'database'] },
+    'ecommerce': { title: 'E-commerce microservices', description: 'Storefront, domain services, messaging, and separate data stores.', tags: ['microservices', 'retail', 'events'] },
+    'realtime-chat': { title: 'Real-time chat', description: 'Persistent WebSockets, presence, fan-out, and message storage.', tags: ['websocket', 'realtime', 'messaging'] },
+    'video-streaming': { title: 'Video streaming platform', description: 'Upload, transcode, package, distribute, and play video.', tags: ['media', 'cdn', 'pipeline'] },
+    'url-shortener': { title: 'URL shortener', description: 'Low-latency redirects with key generation, caching, and analytics.', tags: ['cache', 'high scale', 'analytics'] },
+    'social-feed': { title: 'Social feed', description: 'Hybrid fan-out for publishing and serving personalized feeds.', tags: ['social', 'fanout', 'cache'] },
+    'ride-sharing': { title: 'Ride sharing', description: 'Location ingestion, driver matching, trips, and notifications.', tags: ['geospatial', 'realtime', 'mobile'] },
+    'event-driven': { title: 'Event-driven architecture', description: 'Producers and independent consumers connected by an event backbone.', tags: ['events', 'pubsub', 'decoupling'] },
+    'cqrs': { title: 'CQRS and event sourcing', description: 'Separate command and query paths built from an immutable event log.', tags: ['cqrs', 'event sourcing', 'projections'] },
+    'saga': { title: 'Order saga', description: 'An orchestrated transaction with compensating actions.', tags: ['saga', 'transactions', 'microservices'] },
+    'service-mesh': { title: 'Service mesh', description: 'East-west traffic controlled by sidecars and a shared control plane.', tags: ['mesh', 'kubernetes', 'mTLS'] },
+    'multi-region': { title: 'Active-active multi-region', description: 'Global routing across two active regions with replicated data.', tags: ['resilience', 'global', 'replication'] },
+    'rate-limiter': { title: 'Distributed rate limiter', description: 'Edge enforcement backed by shared counters and policy.', tags: ['api', 'redis', 'reliability'] },
+    'batch-pipeline': { title: 'Batch data pipeline', description: 'Ingest, validate, transform, warehouse, and publish BI datasets.', tags: ['etl', 'warehouse', 'batch'] },
+    'streaming-analytics': { title: 'Streaming analytics', description: 'Real-time event processing with hot and cold serving paths.', tags: ['streaming', 'analytics', 'realtime'] },
+    'lakehouse': { title: 'Data lakehouse', description: 'Open table storage shared by batch, streaming, SQL, and ML.', tags: ['lakehouse', 'data platform', 'ml'] },
+    'mlops': { title: 'MLOps platform', description: 'From features and experiments to deployment and drift monitoring.', tags: ['machine learning', 'deployment', 'monitoring'] },
+    'rag': { title: 'Retrieval-augmented generation', description: 'Document ingestion and a grounded LLM question-answering path.', tags: ['rag', 'llm', 'vector database'] },
+    'serverless': { title: 'Serverless web backend', description: 'Managed edge, functions, queues, database, and object storage.', tags: ['serverless', 'functions', 'cloud'] },
+    'kubernetes': { title: 'Kubernetes application', description: 'Ingress, workloads, service discovery, state, and cluster operations.', tags: ['kubernetes', 'containers', 'platform'] },
+    'cicd': { title: 'CI/CD deployment pipeline', description: 'Build, verify, publish, deploy, observe, and roll back.', tags: ['devops', 'delivery', 'gitops'] },
+    'observability': { title: 'Observability platform', description: 'Unified collection and analysis of metrics, logs, and traces.', tags: ['metrics', 'logs', 'tracing'] },
+    'disaster-recovery': { title: 'Disaster recovery', description: 'Primary infrastructure, backups, standby recovery, and failover.', tags: ['backup', 'resilience', 'failover'] },
+    'oauth': { title: 'OAuth 2.0 authorization code', description: 'Browser sign-in with authorization code and protected API access.', tags: ['oauth', 'identity', 'authentication'] },
+    'zero-trust': { title: 'Zero-trust access', description: 'Every request is authenticated, authorized, and continuously evaluated.', tags: ['zero trust', 'policy', 'identity'] },
+    'secrets': { title: 'Secrets management', description: 'Workload identity, short-lived credentials, rotation, and auditing.', tags: ['secrets', 'credentials', 'rotation'] },
+    'iot': { title: 'IoT telemetry platform', description: 'Device identity, telemetry ingestion, rules, storage, and remote commands.', tags: ['iot', 'telemetry', 'devices'] },
+    'saga-choreography': { title: 'Choreographed order saga', description: 'Domain services coordinate an order through events without a central orchestrator.', tags: ['saga', 'choreography', 'events'] },
+    'saga-travel-booking': { title: 'Travel booking saga', description: 'Coordinate flight, hotel, car, and payment reservations with cancellation steps.', tags: ['saga', 'orchestration', 'compensation'] },
+    'saga-payment-settlement': { title: 'Payment settlement saga', description: 'Risk checks, ledger reservations, bank settlement, and reconciliation.', tags: ['saga', 'payments', 'reconciliation'] },
+    'saga-provisioning': { title: 'Tenant provisioning saga', description: 'Provision identity, database, storage, and billing resources with cleanup.', tags: ['saga', 'provisioning', 'compensation'] },
+    'saga-subscription': { title: 'Subscription upgrade saga', description: 'Safely coordinate plan changes, payment, entitlements, and refunds.', tags: ['saga', 'subscriptions', 'billing'] },
+    'saga-return-refund': { title: 'Return and refund saga', description: 'Manage return approval, parcel inspection, refund, and restocking.', tags: ['saga', 'returns', 'refunds'] },
+    'saga-food-delivery': { title: 'Food delivery saga', description: 'Coordinate restaurant acceptance, payment, courier dispatch, and cancellation.', tags: ['saga', 'delivery', 'realtime'] },
+    'saga-timeout-recovery': { title: 'Saga timeout and recovery', description: 'Durable state, deadlines, retries, dead letters, and manual recovery.', tags: ['saga', 'retries', 'recovery'] },
+  },
+};

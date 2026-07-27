@@ -1,10 +1,11 @@
 <script>
   import { draw } from './d2.js';
   import { EXAMPLES, EXAMPLE_CATEGORIES } from './examples.js';
+  import { t, plural, category as categoryLabel, example as exampleText } from './i18n/index.svelte.js';
 
   let { open = $bindable(false), onload } = $props();
   let query = $state('');
-  let category = $state('All');
+  let category = $state('All'); // canonical category (or 'All') — not the translated label
   let selectedID = $state(EXAMPLES[0].id);
   let preview = $state('');
   let previewError = $state('');
@@ -12,7 +13,9 @@
 
   const filtered = $derived(EXAMPLES.filter((example) => {
     const matchesCategory = category === 'All' || example.category === category;
-    const haystack = `${example.title} ${example.description} ${example.tags.join(' ')}`.toLowerCase();
+    // Search the active language's text, so a query matches what's on screen.
+    const text = exampleText(example.id);
+    const haystack = `${text.title} ${text.description} ${text.tags.join(' ')}`.toLowerCase();
     return matchesCategory && haystack.includes(query.trim().toLowerCase());
   }));
   const selected = $derived(
@@ -60,23 +63,23 @@
     <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="examples-title">
       <header>
         <div>
-          <h2 id="examples-title">System design examples</h2>
-          <p>Start with a proven architecture, then edit every block and connection.</p>
+          <h2 id="examples-title">{t('examples.title')}</h2>
+          <p>{t('examples.subtitle')}</p>
         </div>
-        <button class="close" onclick={() => (open = false)} aria-label="Close examples">×</button>
+        <button class="close" onclick={() => (open = false)} aria-label={t('examples.close')}>×</button>
       </header>
 
       <div class="filters">
         <input
           type="search"
           bind:value={query}
-          placeholder="Search examples…"
-          aria-label="Search examples"
+          placeholder={t('examples.searchPlaceholder')}
+          aria-label={t('examples.searchAria')}
         />
-        <div class="categories" aria-label="Example categories">
+        <div class="categories" aria-label={t('examples.categoriesAria')}>
           {#each ['All', ...EXAMPLE_CATEGORIES] as item}
             <button class:active={category === item} onclick={() => (category = item)}>
-              {item}
+              {item === 'All' ? t('examples.all') : categoryLabel(item)}
             </button>
           {/each}
         </div>
@@ -84,49 +87,50 @@
 
       <div class="content">
         <div class="results">
-          <div class="count">{filtered.length} {filtered.length === 1 ? 'example' : 'examples'}</div>
+          <div class="count">{plural('examples.count', filtered.length)}</div>
           {#if filtered.length}
             <div class="cards">
               {#each filtered as example}
+                {@const text = exampleText(example.id)}
                 <button
                   class="card"
                   class:selected={selected.id === example.id}
                   onclick={() => choose(example)}
                   aria-pressed={selected.id === example.id}
                 >
-                  <span class="card-title">{example.title}</span>
-                  <span class="description">{example.description}</span>
+                  <span class="card-title">{text.title}</span>
+                  <span class="description">{text.description}</span>
                   <span class="tags">
-                    {#each example.tags as tag}<span>{tag}</span>{/each}
+                    {#each text.tags as tag}<span>{tag}</span>{/each}
                   </span>
                 </button>
               {/each}
             </div>
           {:else}
-            <div class="empty">No examples match “{query}”.</div>
+            <div class="empty">{t('examples.empty', { query })}</div>
           {/if}
         </div>
 
         <aside class="preview-pane">
           <div class="preview-heading">
             <div>
-              <span class="eyebrow">{selected.category}</span>
-              <h3>{selected.title}</h3>
+              <span class="eyebrow">{categoryLabel(selected.category)}</span>
+              <h3>{exampleText(selected.id).title}</h3>
             </div>
-            <span class="editable">fully editable</span>
+            <span class="editable">{t('examples.editable')}</span>
           </div>
-          <div class="preview" aria-label="{selected.title} diagram preview">
+          <div class="preview" aria-label={t('examples.previewAria', { title: exampleText(selected.id).title })}>
             {#if preview}
               <div class="svg">{@html preview}</div>
             {:else if previewError}
-              <span class="preview-message">Preview unavailable</span>
+              <span class="preview-message">{t('examples.previewUnavailable')}</span>
             {:else}
-              <span class="preview-message">drawing preview…</span>
+              <span class="preview-message">{t('examples.drawingPreview')}</span>
             {/if}
           </div>
-          <p>{selected.description}</p>
-          <button class="load" onclick={loadSelected}>Use this example</button>
-          <small>Loading is undoable and does not change your layout or theme.</small>
+          <p>{exampleText(selected.id).description}</p>
+          <button class="load" onclick={loadSelected}>{t('examples.use')}</button>
+          <small>{t('examples.footnote')}</small>
         </aside>
       </div>
     </div>

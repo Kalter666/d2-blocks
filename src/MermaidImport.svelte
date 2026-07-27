@@ -3,6 +3,7 @@
   import { fromMermaid } from './mermaid.js';
   import { importMermaid } from './store.svelte.js';
   import { draw } from './d2.js';
+  import { t } from './i18n/index.svelte.js';
 
   let { open = $bindable(false), onimport } = $props();
 
@@ -63,10 +64,10 @@
     <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="mermaid-title">
       <header>
         <div>
-          <h2 id="mermaid-title">Import mermaid</h2>
-          <p>Paste a mermaid flowchart. The preview shows what you'll get as blocks.</p>
+          <h2 id="mermaid-title">{t('mermaid.title')}</h2>
+          <p>{t('mermaid.subtitle')}</p>
         </div>
-        <button class="close" onclick={() => (open = false)} aria-label="Close">×</button>
+        <button class="close" onclick={() => (open = false)} aria-label={t('mermaid.close')}>×</button>
       </header>
 
       <div class="content">
@@ -77,23 +78,23 @@
             autocapitalize="off"
             autocorrect="off"
             placeholder={SAMPLE}
-            aria-label="Mermaid source"
+            aria-label={t('mermaid.sourceAria')}
           ></textarea>
         </div>
         <aside class="preview-pane">
-          <div class="preview" aria-label="Import preview">
+          <div class="preview" aria-label={t('mermaid.previewAria')}>
             {#if preview}
               <div class="svg">{@html preview}</div>
             {:else if error}
               <span class="preview-message error">{error}</span>
             {:else if text.trim()}
-              <span class="preview-message">drawing preview…</span>
+              <span class="preview-message">{t('mermaid.drawingPreview')}</span>
             {:else}
-              <span class="preview-message">paste mermaid to preview</span>
+              <span class="preview-message">{t('mermaid.pastePrompt')}</span>
             {/if}
           </div>
-          <button class="load" onclick={doImport} disabled={!text.trim() || !!error}>Import</button>
-          <small>Only flowcharts import. Import is undoable; layout and theme are unchanged.</small>
+          <button class="load" onclick={doImport} disabled={!text.trim() || !!error}>{t('mermaid.import')}</button>
+          <small>{t('mermaid.footnote')}</small>
         </aside>
       </div>
     </div>

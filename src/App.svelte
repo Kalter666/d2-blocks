@@ -9,15 +9,13 @@
     app, source, add, undo, redo, canUndo, canRedo, save, setSource, commit,
     direction, setDirection, mermaid,
   } from './store.svelte.js';
+  import { t, LOCALES, setLocale, example as exampleText } from './i18n/index.svelte.js';
 
-  const THEMES = [
-    [0, 'Neutral'], [1, 'Grey'], [3, 'Terrastruct'], [4, 'Cool classics'],
-    [5, 'Mixed berry'], [6, 'Grape soda'], [7, 'Aubergine'], [8, 'Colourblind clear'],
-    [100, 'Vanilla nitro'], [302, 'Origami'], [300, 'Terminal'],
-  ];
+  // ids only — the display name comes from t('theme.<id>') so it follows the locale.
+  const THEMES = [0, 1, 3, 4, 5, 6, 7, 8, 100, 302, 300];
   // d2 emits both and picks via prefers-color-scheme, so the diagram follows the
   // OS theme like the rest of the app. Otherwise it's a white slab in dark mode.
-  const DARK_THEMES = [[200, 'Dark mauve'], [201, 'Dark Terrastruct'], [301, 'Terminal grey']];
+  const DARK_THEMES = [200, 201, 301];
   const REPO = 'https://github.com/Kalter666/d2-blocks';
 
   let showCode = $state(true);
@@ -83,12 +81,12 @@
 
   async function copyCode() {
     await navigator.clipboard.writeText(src);
-    flash('d2 copied to clipboard');
+    flash(t('toast.copiedD2'));
   }
 
   async function copyMermaid() {
     await navigator.clipboard.writeText(mermaid());
-    flash('mermaid copied to clipboard');
+    flash(t('toast.copiedMermaid'));
   }
 
   function downloadSvg() {
@@ -101,7 +99,7 @@
     commit();
     draft = null;
     setSource(example.source);
-    flash(`${example.title} loaded`);
+    flash(t('toast.exampleLoaded', { title: exampleText(example.id).title }));
   }
 
   function onKey(e) {
@@ -116,68 +114,74 @@
 <header>
   <h1>d2 <span>blocks</span></h1>
 
-  <button class="examples" onclick={() => (showExamples = true)}>▦ Examples</button>
+  <button class="examples" onclick={() => (showExamples = true)}>▦ {t('toolbar.examples')}</button>
 
   <div class="group">
-    <button onclick={undo} disabled={!canUndo()} title="Undo (Ctrl+Z)">↶</button>
-    <button onclick={redo} disabled={!canRedo()} title="Redo (Ctrl+Shift+Z)">↷</button>
+    <button onclick={undo} disabled={!canUndo()} title={t('toolbar.undo')}>↶</button>
+    <button onclick={redo} disabled={!canRedo()} title={t('toolbar.redo')}>↷</button>
   </div>
 
-  <label>flow
+  <label>{t('toolbar.flow')}
     <select value={direction()} onchange={(e) => setDirection(e.currentTarget.value)}>
       {#each DIRECTIONS as d}<option value={d}>{d}</option>{/each}
     </select>
   </label>
 
-  <label>layout
+  <label>{t('toolbar.layout')}
     <select bind:value={app.layout}>
       <option value="dagre">dagre</option>
       <option value="elk">elk</option>
     </select>
   </label>
 
-  <label>look
+  <label>{t('toolbar.look')}
     <select bind:value={app.look}>
-      <option value="3d">3D</option>
-      <option value="flat">flat</option>
+      <option value="3d">{t('look.3d')}</option>
+      <option value="flat">{t('look.flat')}</option>
     </select>
   </label>
 
-  <label>appearance
+  <label>{t('toolbar.appearance')}
     <select bind:value={app.appearance}>
-      <option value="system">system</option>
-      <option value="light">light</option>
-      <option value="dark">dark</option>
+      <option value="system">{t('appearance.system')}</option>
+      <option value="light">{t('appearance.light')}</option>
+      <option value="dark">{t('appearance.dark')}</option>
     </select>
   </label>
 
-  <label>light
+  <label>{t('toolbar.light')}
     <select value={app.theme} onchange={(e) => {
       app.theme = Number(e.currentTarget.value);
       app.appearance = 'light';
     }}>
-      {#each THEMES as [id, name]}<option value={id}>{name}</option>{/each}
+      {#each THEMES as id}<option value={id}>{t(`theme.${id}`)}</option>{/each}
     </select>
   </label>
 
-  <label>dark
+  <label>{t('toolbar.dark')}
     <select value={app.darkTheme} onchange={(e) => {
       app.darkTheme = Number(e.currentTarget.value);
       app.appearance = 'dark';
     }}>
-      {#each DARK_THEMES as [id, name]}<option value={id}>{name}</option>{/each}
+      {#each DARK_THEMES as id}<option value={id}>{t(`theme.${id}`)}</option>{/each}
     </select>
   </label>
 
-  <label class="check"><input type="checkbox" bind:checked={app.sketch} /> sketch</label>
+  <label>{t('toolbar.language')}
+    <select value={app.locale} onchange={(e) => setLocale(e.currentTarget.value)}>
+      {#each Object.entries(LOCALES) as [code, name]}<option value={code}>{name}</option>{/each}
+    </select>
+  </label>
+
+  <label class="check"><input type="checkbox" bind:checked={app.sketch} /> {t('toolbar.sketch')}</label>
 
   <span class="spacer"></span>
-  {#if app.busy}<span class="busy" aria-live="polite">drawing…</span>{/if}
+  {#if app.busy}<span class="busy" aria-live="polite">{t('toolbar.busy')}</span>{/if}
 
-  <button onclick={() => (showMermaid = true)}>Import Mermaid</button>
-  <button onclick={copyMermaid}>Copy Mermaid</button>
-  <button onclick={copyCode}>Copy d2</button>
-  <button class="primary" onclick={downloadSvg}>Download SVG</button>
+  <button onclick={() => (showMermaid = true)}>{t('toolbar.importMermaid')}</button>
+  <button onclick={copyMermaid}>{t('toolbar.copyMermaid')}</button>
+  <button onclick={copyCode}>{t('toolbar.copyD2')}</button>
+  <button class="primary" onclick={downloadSvg}>{t('toolbar.downloadSvg')}</button>
 </header>
 
 <main>
@@ -186,10 +190,10 @@
       <Stack bind:list={app.blocks} root />
     </div>
     <div class="palette">
-      <button class="add box" onclick={addBox}>+ box</button>
-      <button class="add group" onclick={addGroup}>+ group</button>
-      <button class="add link" onclick={addLink} disabled={!options.length}>+ connect</button>
-      <button class="add style" onclick={addStyle} disabled={!options.length}>+ style</button>
+      <button class="add box" onclick={addBox}>{t('palette.box')}</button>
+      <button class="add group" onclick={addGroup}>{t('palette.group')}</button>
+      <button class="add link" onclick={addLink} disabled={!options.length}>{t('palette.connect')}</button>
+      <button class="add style" onclick={addStyle} disabled={!options.length}>{t('palette.style')}</button>
     </div>
   </section>
 
@@ -199,10 +203,10 @@
 <footer class:open={showCode}>
   <div class="bar">
     <button class="drawer" onclick={() => (showCode = !showCode)} aria-expanded={showCode}>
-      <span class="chevron" class:up={showCode}>▾</span> d2 source
-      <span class="note">edit or paste — the blocks follow</span>
+      <span class="chevron" class:up={showCode}>▾</span> {t('source.label')}
+      <span class="note">{t('source.note')}</span>
     </button>
-    <a href={REPO} target="_blank" rel="noopener">source</a>
+    <a href={REPO} target="_blank" rel="noopener">{t('footer.source')}</a>
     <a href="{REPO}/blob/main/LICENSE" target="_blank" rel="noopener">MIT</a>
   </div>
   {#if showCode}
@@ -211,7 +215,7 @@
       spellcheck="false"
       autocapitalize="off"
       autocorrect="off"
-      aria-label="d2 source"
+      aria-label={t('source.aria')}
       value={draft ?? src}
       onfocus={() => { commit(); draft = src; }}
       oninput={(e) => setSource((draft = e.currentTarget.value))}

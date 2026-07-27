@@ -1,6 +1,7 @@
 <script>
   import { app } from './store.svelte.js';
   import { index } from './d2.js';
+  import { t } from './i18n/index.svelte.js';
   import Scene from './Scene.svelte';
 
   let host = $state(null);   // holds the injected SVG
@@ -79,7 +80,7 @@
   <div
     class="view"
     role="application"
-    aria-label="Diagram preview. Drag to pan, Ctrl and scroll to zoom."
+    aria-label={t('canvas.aria')}
     bind:this={view}
     onwheel={onWheel}
     onpointerdown={onPointerDown}
@@ -100,10 +101,10 @@
   {/if}
 
   <div class="zoom">
-    <button onclick={() => (zoom = clamp(zoom / 1.25))} disabled={zoom <= MIN} title="Zoom out">−</button>
-    <button class="level" onclick={() => (zoom = 1)} title="Reset to 100%">{Math.round(zoom * 100)}%</button>
-    <button onclick={() => (zoom = clamp(zoom * 1.25))} disabled={zoom >= MAX} title="Zoom in">+</button>
-    <button onclick={fit} title="Fit to window">⤢</button>
+    <button onclick={() => (zoom = clamp(zoom / 1.25))} disabled={zoom <= MIN} title={t('canvas.zoomOut')}>−</button>
+    <button class="level" onclick={() => (zoom = 1)} title={t('canvas.reset')}>{Math.round(zoom * 100)}%</button>
+    <button onclick={() => (zoom = clamp(zoom * 1.25))} disabled={zoom >= MAX} title={t('canvas.zoomIn')}>+</button>
+    <button onclick={fit} title={t('canvas.fit')}>⤢</button>
   </div>
 </div>
 

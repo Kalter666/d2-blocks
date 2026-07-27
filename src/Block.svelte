@@ -3,6 +3,7 @@
   import Rich from './Rich.svelte';
   import { markdownHint } from './md.js';
   import { app, commit, del, reorder } from './store.svelte.js';
+  import { t } from './i18n/index.svelte.js';
   import {
     keys, safeKey, renameKey, collides, defaultStyle,
     SHAPES, STYLE_PROPS, DIRECTIONS, ARROWS,
@@ -23,8 +24,8 @@
   // same-named boxes into one shape with both sets of edges, and say nothing.
   const problem = $derived.by(() => {
     if (!named) return '';
-    if (!block.name.trim()) return 'Needs a name.';
-    if (collides(siblings, block.name, block)) return `Another ${block.type} here is already called that — d2 will merge them.`;
+    if (!block.name.trim()) return t('block.needsName');
+    if (collides(siblings, block.name, block)) return t('block.duplicate', { kind: t(`block.verb.${block.type}`) });
     return '';
   });
 
@@ -103,33 +104,33 @@
   onpointerleave={() => (app.hover = null)}
 >
   <div class="row">
-    <button class="grip" onkeydown={onGripKey} title="Drag to move, or arrow keys to reorder">
+    <button class="grip" onkeydown={onGripKey} title={t('block.grip')}>
       <span aria-hidden="true">⠿</span>
-      <span class="sr">Move this {block.type} block</span>
+      <span class="sr">{t('block.move', { kind: t(`block.verb.${block.type}`) })}</span>
     </button>
 
     {#if block.type === 'box'}
-      <span class="verb">box</span>
-      <input class="slot name" class:bad={problem} aria-invalid={!!problem} value={block.name} oninput={(e) => setName(e.currentTarget.value)} onfocus={commit} placeholder="name" size="8" />
+      <span class="verb">{t('block.verb.box')}</span>
+      <input class="slot name" class:bad={problem} aria-invalid={!!problem} value={block.name} oninput={(e) => setName(e.currentTarget.value)} onfocus={commit} placeholder={t('placeholder.name')} size="8" />
       {#if !block.md}
-        <span class="verb dim">labelled</span>
-        <input class="slot" bind:value={block.label} onfocus={commit} placeholder="same as name" size="10" />
+        <span class="verb dim">{t('block.labelled')}</span>
+        <input class="slot" bind:value={block.label} onfocus={commit} placeholder={t('placeholder.sameAsName')} size="10" />
       {/if}
-      <span class="verb dim">shaped</span>
+      <span class="verb dim">{t('block.shaped')}</span>
       <select class="slot" bind:value={block.shape} onfocus={commit}>
-        {#each SHAPES as [value, role]}<option {value} title="d2: {value || 'no shape'}">{!value && block.md ? 'Text only (no box)' : role}</option>{/each}
+        {#each SHAPES as [value]}<option {value} title="d2: {value || 'no shape'}">{!value && block.md ? t('shape.textOnly') : t(`shape.${value || 'default'}`)}</option>{/each}
       </select>
       <button class="chip" class:on={block.md} onclick={toggleMd}
-        title={block.md ? 'Back to a plain label' : 'Rich text label (markdown)'}>¶</button>
+        title={block.md ? t('block.md.off') : t('block.md.on')}>¶</button>
 
     {:else if block.type === 'group'}
-      <span class="verb">group</span>
-      <input class="slot name" class:bad={problem} aria-invalid={!!problem} value={block.name} oninput={(e) => setName(e.currentTarget.value)} onfocus={commit} placeholder="name" size="8" />
-      <span class="verb dim">labelled</span>
-      <input class="slot" bind:value={block.label} onfocus={commit} placeholder="same as name" size="10" />
+      <span class="verb">{t('block.verb.group')}</span>
+      <input class="slot name" class:bad={problem} aria-invalid={!!problem} value={block.name} oninput={(e) => setName(e.currentTarget.value)} onfocus={commit} placeholder={t('placeholder.name')} size="8" />
+      <span class="verb dim">{t('block.labelled')}</span>
+      <input class="slot" bind:value={block.label} onfocus={commit} placeholder={t('placeholder.sameAsName')} size="10" />
 
     {:else if block.type === 'link'}
-      <span class="verb">connect</span>
+      <span class="verb">{t('block.verb.connect')}</span>
       <select class="slot" bind:value={block.src} onfocus={commit}>
         {#each options as o}<option value={o.key}>{' '.repeat(o.depth * 2) + o.name}</option>{/each}
       </select>
@@ -140,14 +141,14 @@
         {#each options as o}<option value={o.key}>{' '.repeat(o.depth * 2) + o.name}</option>{/each}
       </select>
       {#if !block.md}
-        <span class="verb dim">labelled</span>
-        <input class="slot" bind:value={block.label} onfocus={commit} placeholder="nothing" size="8" />
+        <span class="verb dim">{t('block.labelled')}</span>
+        <input class="slot" bind:value={block.label} onfocus={commit} placeholder={t('placeholder.nothing')} size="8" />
       {/if}
       <button class="chip" class:on={block.md} onclick={toggleMd}
-        title={block.md ? 'Back to a plain label' : 'Rich text label (markdown)'}>¶</button>
+        title={block.md ? t('block.md.off') : t('block.md.on')}>¶</button>
 
     {:else if block.type === 'style'}
-      <span class="verb">style</span>
+      <span class="verb">{t('block.verb.style')}</span>
       <select class="slot" bind:value={block.target} onfocus={commit}>
         {#each options as o}<option value={o.key}>{' '.repeat(o.depth * 2) + o.name}</option>{/each}
       </select>
@@ -156,19 +157,19 @@
       </select>
 
       {#if spec.kind === 'color'}
-        <input class="swatch" type="color" bind:value={block.value} onfocus={commit} aria-label="{block.prop} colour" />
-        <input class="slot hex" bind:value={block.value} onfocus={commit} placeholder="#rrggbb" size="8" />
+        <input class="swatch" type="color" bind:value={block.value} onfocus={commit} aria-label={t('block.colourAria', { prop: block.prop })} />
+        <input class="slot hex" bind:value={block.value} onfocus={commit} placeholder={t('placeholder.hex')} size="8" />
       {:else if spec.kind === 'number'}
         <input
           class="slot num" type="number" bind:value={block.value} onfocus={commit}
           min={spec.min} max={spec.max ?? undefined} step={spec.step} aria-label={block.prop}
         />
-        <span class="verb dim">{spec.max == null ? `${spec.min} or more` : `${spec.min}–${spec.max}`}</span>
+        <span class="verb dim">{spec.max == null ? t('block.range.min', { min: spec.min }) : t('block.range.minMax', { min: spec.min, max: spec.max })}</span>
       {:else if spec.kind === 'bool'}
         <label class="bool">
           <input type="checkbox" checked={block.value === 'true'} onfocus={commit}
             onchange={(e) => (block.value = String(e.currentTarget.checked))} />
-          {block.value === 'true' ? 'yes' : 'no'}
+          {block.value === 'true' ? t('block.yes') : t('block.no')}
         </label>
       {:else if spec.kind === 'enum'}
         <select class="slot" bind:value={block.value} onfocus={commit}>
@@ -179,17 +180,17 @@
       {/if}
 
     {:else if block.type === 'direction'}
-      <span class="verb">lay out</span>
+      <span class="verb">{t('block.verb.direction')}</span>
       <select class="slot" bind:value={block.value} onfocus={commit}>
         {#each DIRECTIONS as d}<option value={d}>{d}</option>{/each}
       </select>
 
     {:else}
-      <span class="verb">d2</span>
+      <span class="verb">{t('block.verb.raw')}</span>
       <code class="raw-text">{block.text || ' '}</code>
     {/if}
 
-    <button class="remove" onclick={() => del(block)} title="Delete this block">×</button>
+    <button class="remove" onclick={() => del(block)} title={t('block.delete')}>×</button>
   </div>
 
   {#if problem}<p class="problem">{problem}</p>{/if}
@@ -200,11 +201,11 @@
       class:empty={!block.label}
       onclick={() => (mdOpen = !mdOpen)}
       aria-expanded={mdOpen}
-      title={mdOpen ? 'Close description' : 'Open description'}
+      title={mdOpen ? t('block.desc.close') : t('block.desc.open')}
     >
       <span class="md-chevron" class:open={mdOpen} aria-hidden="true">›</span>
-      <span class="md-kind">{mdSummary.heading ? 'heading' : 'description'}</span>
-      <span class="md-preview">{mdSummary.text}</span>
+      <span class="md-kind">{mdSummary.heading ? t('block.mdKind.heading') : t('block.mdKind.description')}</span>
+      <span class="md-preview">{mdSummary.empty ? t('block.descEmpty') : mdSummary.text}</span>
     </button>
     {#if mdOpen}<Rich bind:value={block.label} />{/if}
   {/if}
