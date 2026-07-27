@@ -49,3 +49,15 @@ test('the canvas renders an svg (WASM path)', async ({ page }) => {
 
   await expect(page.getByTitle('Reset to 100%')).toBeVisible();
 });
+
+// Regression: editing before the cold ~6 MB compile settled used to race the
+// single shared d2 worker and blank the canvas with a parse error. This test
+// deliberately skips open()'s idle wait and acts immediately.
+test('editing during the cold render does not corrupt the canvas', async ({ page }) => {
+  await page.goto('/');
+  await control(page, 'look').selectOption('flat');
+  await page.getByRole('button', { name: '+ box' }).click();
+  await expect(page.locator('.busy')).toHaveCount(0, { timeout: 20_000 });
+  await expect(page.locator('.canvas .error')).toHaveCount(0);
+  await expect(page.locator('.paper svg').first()).toBeVisible();
+});
