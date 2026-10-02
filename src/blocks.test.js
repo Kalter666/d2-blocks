@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { serialize, parse, keys, remove, relativize, absolutize } from './blocks.js';
+import { serialize, parse, keys, remove, relativize, absolutize, targets } from './blocks.js';
 
 const tree = [
   { type: 'direction', value: 'right' },
@@ -332,4 +332,12 @@ test('syntax the blocks cannot hold comes back verbatim', () => {
   ].join('\n');
   assert.equal(serialize(parse(src)) + '\n', src);
   assert.equal(parse(src)[0].type, 'box', 'a unicode name is still a box');
+});
+
+test('connection targets include compiled shapes and the current value', () => {
+  const blocks = parse('api\norders: {\n  shape: sql_table\n  id: int\n}\napi -> orders.id\n');
+  const keysOf = (o) => o.map((x) => x.key);
+  assert.deepEqual(keysOf(targets(blocks)), ['api']);
+  assert.deepEqual(keysOf(targets(blocks, ['api', 'orders'], ['api', 'orders.id'])), ['api', 'orders', 'orders.id']);
+  assert.equal(targets(blocks, [], ['orders.id'])[1].name, 'id');
 });

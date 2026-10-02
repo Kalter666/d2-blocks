@@ -410,6 +410,24 @@ function splitLabel(head) {
  * Returns the source shape too: d2 normalises some compiled types (`circle`
  * becomes `oval`), while the 3D renderer must preserve the role the user chose.
  */
+/**
+ * What a connection or style can target: every box and group, plus every other
+ * shape d2 actually compiled — tables, classes and anything else kept as a raw
+ * block. Still only real shapes, so a dropdown can't invent a phantom box.
+ * `extra` is the block's own current values (`orders.user_id`, a table column),
+ * listed as-is so the select shows them instead of a blank.
+ */
+export function targets(blocks, compiledIds = [], extra = []) {
+  const out = keys(blocks);
+  const seen = new Set(out.map((o) => o.key));
+  for (const id of [...compiledIds, ...extra]) {
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push({ key: id, name: id.split('.').at(-1), depth: id.split('.').length - 1 });
+  }
+  return out;
+}
+
 export function keys(blocks, prefix = '', depth = 0) {
   const out = [];
   for (const b of blocks) {

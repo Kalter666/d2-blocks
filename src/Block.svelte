@@ -5,7 +5,7 @@
   import { app, commit, del, reorder } from './store.svelte.js';
   import { t } from './i18n/index.svelte.js';
   import {
-    keys, safeKey, renameKey, collides, defaultStyle,
+    targets, safeKey, renameKey, collides, defaultStyle,
     SHAPES, STYLE_PROPS, DIRECTIONS, ARROWS,
   } from './blocks.js';
 
@@ -16,7 +16,12 @@
   let mdOpen = $state(false);
   const mdSummary = $derived(markdownHint(block.label));
 
-  const options = $derived(keys(app.blocks));
+  // Compiled ids only on the root board: a layer's shapes aren't this file's.
+  const options = $derived(targets(
+    app.blocks,
+    app.board ? [] : (app.diagram?.shapes ?? []).map((s) => s.id),
+    [block.src, block.dst, block.target],
+  ));
   const named = $derived(block.type === 'box' || block.type === 'group');
 
   // Typing can't be refused mid-word — you'd never get to type "authx" past
