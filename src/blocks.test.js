@@ -145,7 +145,7 @@ test('a pasted d2 file survives the editor untouched', () => {
 
   // …and the parts we do model came through as real blocks, not raw fallbacks.
   const blocks = parse(pasted);
-  assert.equal(blocks.filter((b) => b.type === 'raw').length, 1, 'only the comment');
+  assert.equal(blocks.filter((b) => b.type === 'raw').length, 2, 'only the comment and vars');
   const backend = blocks.find((b) => b.type === 'group' && b.name === 'Backend');
   assert.equal(backend.label, 'The Backend');
   assert.deepEqual(
@@ -292,4 +292,28 @@ test('remove finds blocks nested in groups', () => {
   assert.equal(remove(t, worker), true);
   assert.deepEqual(keys(t).map((k) => k.key), ['Database', 'Cache', 'CDN', 'Backend', 'Backend.API']);
   assert.equal(remove(t, { type: 'box' }), false);
+});
+
+test('a connection with a map body and inline maps survive verbatim', () => {
+  const src = [
+    'a -> b: reads {',
+    '  target-arrowhead: {',
+    '    shape: cf-many',
+    '  }',
+    '}',
+    'layers: { detail: { x -> y } }',
+    'scenarios: { s: { a.style.opacity: 0.4 } }',
+    'Order: {',
+    '  shape: class',
+    '  +id: int',
+    '}',
+    '',
+  ].join('\n');
+  assert.equal(serialize(parse(src)) + '\n', src);
+});
+
+test('a group holding a table is still a group', () => {
+  const blocks = parse('db: {\n  users: {\n    shape: sql_table\n    id: int\n  }\n}\n');
+  assert.equal(blocks[0].type, 'group');
+  assert.equal(blocks[0].children[0].type, 'raw');
 });

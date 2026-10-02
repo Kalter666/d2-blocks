@@ -9,6 +9,8 @@
   import * as THREE from 'three';
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+  import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+  import { unsafeAttr } from './sanitize.js';
   import { app } from './store.svelte.js';
   import { keys } from './blocks.js';
   import { markdownHint } from './md.js';
@@ -18,6 +20,7 @@
   let { maps } = $props();
 
   let canvas = $state(null);
+  let tip = $state(null); // { text, x, y } — a hovered tooltip, in stage pixels
   let box = $state(null);
   let world = null; // everything three owns, once it exists
   // Set once, never read inside the effect that sets it: `ready++` would be a
@@ -533,20 +536,57 @@
     });
   }
 
-  /** A beveled wayfinding arrow, centred at the origin and pointing local +Y. */
-  function arrowPlateGeometry(scale = 1, depth = 3.2) {
-    // The shaft is wider than the conduit and its luminous skin. Matching them
-    // exactly made the rubber appear to poke through the arrow at oblique views.
-    const L = 24 * scale, W = 18 * scale, shaft = 9 * scale;
-    const s = new THREE.Shape();
-    s.moveTo(-shaft / 2, -L / 2);
-    s.lineTo(shaft / 2, -L / 2);
-    s.lineTo(shaft / 2, L * 0.06);
-    s.lineTo(W / 2, L * 0.06);
-    s.lineTo(0, L / 2);
-    s.lineTo(-W / 2, L * 0.06);
-    s.lineTo(-shaft / 2, L * 0.06);
-    s.closePath();
+  const poly = (pts, Kind = THREE.Shape) => new Kind(pts.map(([x, y]) => new THREE.Vector2(x, y)));
+  /** A rectangle `t` wide along the segment a→b, for bars and crow's-foot prongs. */
+  const bar = ([ax, ay], [bx, by], t) => {
+    const len = Math.hypot(bx - ax, by - ay) || 1;
+    const [nx, ny] = [(-(by - ay) / len) * t / 2, ((bx - ax) / len) * t / 2];
+    return poly([[ax + nx, ay + ny], [bx + nx, by + ny], [bx - nx, by - ny], [ax - nx, ay - ny]]);
+  };
+  /** An outline-only head is the filled one with a smaller copy cut out of it. */
+  const hollow = (outer, inner) => { outer.holes.push(inner); return outer; };
+  const circle = (r, Kind = THREE.Shape) => new Kind().absarc(0, 0, r, 0, Math.PI * 2, false);
+
+  /**
+   * d2's arrowheads as flat outlines, centred at the origin and pointing local
+   * +Y: triangles, diamonds, circles, boxes, crosses and crow's feet, filled or
+   * hollow. Each is a list of shapes, since a crow's foot is several strokes.
+   */
+  function headShapes(kind, L, W) {
+    const shaft = W / 2;
+    const scaled = (pts, k) => pts.map(([x, y]) => [x * k, y * k]);
+    const diamond = [[0, L / 2], [W / 2, 0], [0, -L / 2], [-W / 2, 0]];
+    const box = [[-W / 2, -W / 2], [W / 2, -W / 2], [W / 2, W / 2], [-W / 2, W / 2]];
+    const tri = [[-W / 2, -L * 0.3], [W / 2, -L * 0.3], [0, L / 2]];
+    const stub = bar([0, -L / 2], [0, 0], shaft); // carries the cable's line into a free-standing head
+    const crow = [[-W / 2, L / 2], [0, L / 2], [W / 2, L / 2]].map((tip) => bar([0, -L * 0.1], tip, 3));
+    const cross = (y) => bar([-W / 2, y], [W / 2, y], 3.4);
+    switch (kind) {
+      case 'diamond': return [stub, hollow(poly(diamond), poly(scaled(diamond, 0.5), THREE.Path))];
+      case 'filled-diamond': return [stub, poly(diamond)];
+      case 'circle': return [stub, hollow(circle(W / 2), circle(W / 4, THREE.Path))];
+      case 'filled-circle': return [stub, circle(W / 2)];
+      case 'box': return [stub, hollow(poly(box), poly(scaled(box, 0.5), THREE.Path))];
+      case 'filled-box': return [stub, poly(box)];
+      case 'unfilled-triangle': return [stub, hollow(poly(tri), poly(scaled(tri, 0.45), THREE.Path))];
+      case 'cross': return [bar([-W / 2, -L / 2], [W / 2, L / 2], 3.4), bar([W / 2, -L / 2], [-W / 2, L / 2], 3.4)];
+      case 'cf-one': return [bar([0, -L / 2], [0, L / 2], 3), cross(L * 0.15)];
+      case 'cf-one-required': return [bar([0, -L / 2], [0, L / 2], 3), cross(L * 0.15), cross(-L * 0.15)];
+      case 'cf-many': return [bar([0, -L / 2], [0, 0], 3), ...crow];
+      case 'cf-many-required': return [bar([0, -L / 2], [0, 0], 3), ...crow, cross(-L * 0.3)];
+      default: { // triangle, arrow: a wayfinding arrow
+        // The shaft is wider than the conduit and its luminous skin. Matching them
+        // exactly made the rubber appear to poke through the arrow at oblique views.
+        const s = W / 2;
+        return [poly([[-s / 2, -L / 2], [s / 2, -L / 2], [s / 2, L * 0.06], [W / 2, L * 0.06],
+          [0, L / 2], [-W / 2, L * 0.06], [-s / 2, L * 0.06]])];
+      }
+    }
+  }
+
+  /** A beveled arrowhead of d2's `kind`, centred at the origin and pointing local +Y. */
+  function arrowPlateGeometry(scale = 1, depth = 3.2, kind = 'triangle') {
+    const s = headShapes(kind, 24 * scale, 18 * scale);
     const bevel = Math.min(1.2, depth * 0.25);
     const geo = new THREE.ExtrudeGeometry(s, {
       depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel,
@@ -556,12 +596,12 @@
     return geo;
   }
 
-  function physicalArrow(position, direction, id, currentColor) {
+  function physicalArrow(position, direction, id, currentColor, kind) {
     const g = new THREE.Group();
     const metal = new THREE.MeshStandardMaterial({
       color: 0x34424c, metalness: 0.82, roughness: 0.28, envMapIntensity: 1.2,
     });
-    const outer = new THREE.Mesh(arrowPlateGeometry(1, 4), metal);
+    const outer = new THREE.Mesh(arrowPlateGeometry(1, 4, kind), metal);
     // Small connection shadows are subpixel at ordinary zoom and shimmer over
     // the ground. The larger architecture objects still anchor the scene.
     outer.castShadow = false;
@@ -599,7 +639,7 @@
     // them: that separate silhouette looked detached from the physical body.
     for (const side of [-1, 1]) {
       const insert = new THREE.Mesh(
-        arrowPlateGeometry(0.66, 1.2),
+        arrowPlateGeometry(0.66, 1.2, kind),
         new THREE.MeshBasicMaterial({ color: currentColor, toneMapped: false }),
       );
       insert.position.z = side * 2.75;
@@ -645,6 +685,27 @@
     return path;
   }
 
+  /**
+   * A cable along `curve`; with `dash` set, d2's stroke-dash, as separate lengths
+   * of cable with gaps between them. Each length gets the whole 0..1 UV run, so
+   * the current pulses within every dash rather than across the gaps.
+   */
+  function cableGeometry(curve, radius, segments, sides, dash) {
+    if (!dash) return new THREE.TubeGeometry(curve, segments, radius, sides, false);
+    const length = Math.max(1, curve.getLength());
+    const on = 6 + dash * 2.5;
+    const count = Math.min(60, Math.max(1, Math.round(length / (on * 1.8))));
+    const pieces = [];
+    for (let i = 0; i < count; i++) {
+      const start = i / count;
+      const piece = curveSection(curve, start, start + (1 / count) * 0.55);
+      pieces.push(new THREE.TubeGeometry(piece, 4, radius, sides, false));
+    }
+    const merged = mergeGeometries(pieces);
+    for (const p of pieces) p.dispose();
+    return merged;
+  }
+
   /** An arc-length section of a curve, used to stop conduit beneath arrowheads. */
   function curveSection(curve, start, end) {
     const section = new THREE.Curve();
@@ -655,26 +716,23 @@
 
   // --------------------------------------------------------------------- build
 
-  /** Style blocks are already stored with absolute targets; last declaration wins. */
-  function styleIndex(blocks, out = new Map()) {
-    for (const b of blocks ?? []) {
-      if (b.type === 'style') {
-        if (!out.has(b.target)) out.set(b.target, {});
-        out.get(b.target)[b.prop] = b.value;
-      }
-      if (b.children) styleIndex(b.children, out);
-    }
-    return out;
-  }
-
-  const asBool = (v) => v == null ? undefined : String(v) === 'true';
   const asNumber = (v, fallback) => Number.isFinite(Number(v)) ? Number(v) : fallback;
   const usableColor = (value, fallback) =>
     value && value !== 'none' && !String(value).startsWith('url(') ? value : fallback;
+  // d2 hands unset colours over as theme tokens (N1, B4, AA2…) and resolves them
+  // only in the SVG. Anything else was written by someone: a style, a class, a var.
+  const explicit = (v) => (v && v !== 'transparent' && !/^[A-Z]{1,2}\d$/.test(v) ? v : undefined);
+  // ponytail: d2's default label sizes; an explicit size equal to one is ignored.
+  const DEFAULT_FONT = new Set([16, 20, 24, 28]);
 
-  /** The resolved style d2 actually painted, including theme CSS and group opacity. */
-  const paintOf = (id, rule = {}) => {
-    const root = maps.byId.get(id);
+  /**
+   * The style d2 actually resolved for a shape or connection. Read from the
+   * compiled object, not the editor's style blocks, so classes, vars, globs and
+   * imports all count; colours still come off the painted SVG, which is the only
+   * place theme tokens are turned into the selected light/dark palette.
+   */
+  const paintOf = (o) => {
+    const root = maps.byId.get(o.id);
     // Shapes keep their paint below `.shape`; connections are paths directly
     // inside their tagged group. Supporting both makes themed current possible.
     const el = root?.querySelector('.shape > :not([class*="-overlay"])')
@@ -682,23 +740,25 @@
     const css = el ? getComputedStyle(el) : null;
     const text = root?.querySelector('text');
     const textCss = text ? getComputedStyle(text) : null;
+    const fill = explicit(o.fill), stroke = explicit(o.stroke);
     return {
-      fill: usableColor(rule.fill, usableColor(css?.fill, el?.getAttribute('fill') ?? '#456b8c')),
-      stroke: usableColor(rule.stroke, usableColor(css?.stroke, el?.getAttribute('stroke') ?? '#93b8d4')),
-      opacity: Math.min(1, Math.max(0, asNumber(rule.opacity, asNumber(root && getComputedStyle(root).opacity, 1)))),
-      strokeWidth: asNumber(rule['stroke-width'], asNumber(css?.strokeWidth, 2)),
-      pattern: rule['fill-pattern'] ?? root?.querySelector('[class$="-overlay"]')?.classList?.[0]?.replace('-overlay', ''),
-      shadow: asBool(rule.shadow),
-      animated: asBool(rule.animated),
-      explicitFill: rule.fill,
+      fill: usableColor(fill, usableColor(css?.fill, el?.getAttribute('fill') ?? '#456b8c')),
+      stroke: usableColor(stroke, usableColor(css?.stroke, el?.getAttribute('stroke') ?? '#93b8d4')),
+      opacity: Math.min(1, Math.max(0, asNumber(o.opacity, 1))),
+      strokeWidth: asNumber(o.strokeWidth, 2),
+      pattern: o.fillPattern || root?.querySelector('[class$="-overlay"]')?.classList?.[0]?.replace('-overlay', ''),
+      animated: !!o.animated,
+      explicitFill: fill,
+      explicitStroke: stroke,
       label: {
-        color: usableColor(rule['font-color'], usableColor(textCss?.fill, '#f7f8fa')),
-        stroke: usableColor(rule.stroke, 'rgba(255,255,255,0.18)'),
-        bold: asBool(rule.bold),
-        italic: asBool(rule.italic),
-        underline: asBool(rule.underline),
-        transform: rule['text-transform'],
-        size: rule['font-size'] ? Math.min(80, Math.max(16, asNumber(rule['font-size'], 16) * 1.75)) : null,
+        color: usableColor(explicit(o.color), usableColor(textCss?.fill, '#f7f8fa')),
+        stroke: usableColor(stroke, 'rgba(255,255,255,0.18)'),
+        bold: o.bold,
+        italic: o.italic,
+        underline: o.underline,
+        transform: textCss?.textTransform,
+        size: o.fontSize && !DEFAULT_FONT.has(o.fontSize)
+          ? Math.min(80, Math.max(16, o.fontSize * 1.75)) : null,
       },
     };
   };
@@ -731,19 +791,167 @@
     });
   }
 
+  // ------------------------------------------------------------ borrowed art
+
+  /** d2 serialises an icon as Go's url.URL; only web and inline images are loaded. */
+  function iconUrl(icon) {
+    if (!icon) return null;
+    const url = typeof icon === 'string' ? icon
+      : `${icon.Scheme}:${icon.Host ? `//${icon.Host}` : ''}${icon.Opaque || icon.Path}${icon.RawQuery ? `?${icon.RawQuery}` : ''}`;
+    return /^(https?:|data:image\/)/i.test(url) ? url : null;
+  }
+
+  /** Draw an image onto a canvas texture; an SVG with no intrinsic size is drawn square. */
+  function imageTexture(img, w = 256, h = 256) {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const g = c.getContext('2d');
+    const iw = img.naturalWidth || w, ih = img.naturalHeight || h;
+    const k = Math.min(w / iw, h / ih);
+    g.drawImage(img, (w - iw * k) / 2, (h - ih * k) / 2, iw * k, ih * k);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    return t;
+  }
+
+  // One request per icon URL for the life of the page, shared by every rebuild.
+  // A host without CORS fails to load rather than tainting the WebGL canvas.
+  const icons = new Map();
+  function iconTexture(url) {
+    // no-store: the hidden SVG's <image> already fetched it without CORS, and
+    // that cached copy would be handed back here and refused.
+    if (!icons.has(url)) icons.set(url, fetch(url, { mode: 'cors', cache: 'no-store' })
+      .then((r) => (r.ok ? r.blob() : Promise.reject()))
+      .then((blob) => new Promise((resolve) => {
+        const src = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(src);
+          const t = imageTexture(img);
+          shared.add(t);
+          resolve(t);
+        };
+        img.onerror = () => { URL.revokeObjectURL(src); resolve(null); };
+        img.src = src;
+      }))
+      .catch(() => null));
+    return icons.get(url);
+  }
+
+  /**
+   * d2 already draws tables, classes, code and maths properly, so the 3D panel
+   * shows that drawing instead of re-implementing it: the hidden SVG is cloned
+   * down to this one shape, cropped to it and rasterised.
+   */
+  function snapshot(s) {
+    const g = maps.byId.get(s.id);
+    const svg = g?.closest('svg.d2-svg');
+    if (!svg) return Promise.resolve(null);
+    const token = g.getAttribute('class').split(' ')[0];
+    const copy = svg.cloneNode(true);
+    for (const n of [...copy.children]) {
+      if (n.localName === 'style') continue;
+      if (n.localName === 'g' && n.getAttribute('class')?.split(' ')[0] === token) continue;
+      n.remove();
+    }
+    const k = Math.min(3, 2048 / Math.max(s.width, s.height)); // texels per d2 unit
+    const [w, h] = [Math.round(s.width * k), Math.round(s.height * k)];
+    copy.setAttribute('viewBox', `${s.pos.x} ${s.pos.y} ${s.width} ${s.height}`);
+    copy.setAttribute('width', w);
+    copy.setAttribute('height', h);
+    const url = URL.createObjectURL(new Blob(
+      [new XMLSerializer().serializeToString(copy)], { type: 'image/svg+xml' },
+    ));
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); resolve(imageTexture(img, w, h)); };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    });
+  }
+
+  /** Put a late texture on a material, unless the rebuild that made it is gone. */
+  function whenLoaded(promise, material, own = false) {
+    promise.then((t) => {
+      if (!t) return;
+      if (material.userData.gone) { if (own) t.dispose(); return; }
+      material.map = t;
+      material.color?.set(0xffffff);
+      material.opacity = 1;
+      material.needsUpdate = true;
+      world?.invalidate?.();
+    });
+  }
+
+  /** A camera-facing picture, `w`×`h` d2 units, standing with its foot at the origin. */
+  function picture(url, w, h, id) {
+    const material = new THREE.SpriteMaterial({ transparent: true, opacity: 0, depthWrite: false });
+    const sprite = new THREE.Sprite(material);
+    sprite.scale.set(w, h, 1);
+    sprite.position.y = h / 2;
+    sprite.userData = { id };
+    whenLoaded(iconTexture(url), material);
+    return sprite;
+  }
+
+  const PANELS = new Set(['sql_table', 'class', 'code']);
+  const isPanel = (s) => PANELS.has(s.type) || (s.type === 'text' && s.language === 'latex');
+  const SLAB = 10;
+
+  /** A low slab with d2's own drawing of the shape laid on its top face. */
+  function panelBody(s, M) {
+    const g = new THREE.Group();
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(s.width, SLAB, s.height), M.cap());
+    slab.position.y = SLAB / 2;
+    g.add(slab);
+    const face = new THREE.MeshBasicMaterial({ color: 0x1a222b, transparent: true, toneMapped: false });
+    const top = new THREE.Mesh(new THREE.PlaneGeometry(s.width, s.height), face);
+    top.rotation.x = -Math.PI / 2;
+    top.position.y = SLAB + 0.3;
+    g.add(top);
+    whenLoaded(snapshot(s), face, true);
+    return g;
+  }
+
   function build(diagram) {
     const group = new THREE.Group();
     const dashes = [];
     const mdPanels = new Map();
-    if (!diagram?.shapes?.length) return { group, dashes, mdPanels };
-    const styles = styleIndex(app.blocks);
-    const sourceShapes = new Map(keys(app.blocks).map(({ key, name, shape, md }) =>
+    if (!diagram?.shapes?.length) return { group, dashes, mdPanels, meta: new Map() };
+    // The editor only knows the root board; a layer's ids can mean other shapes.
+    const sourceShapes = new Map((app.board ? [] : keys(app.blocks)).map(({ key, name, shape, md }) =>
       [key, { name, shape, md }]));
     const typeOf = (shape) => resolvedType(shape.type, sourceShapes.get(shape.id));
+    const meta = new Map(); // id → { tooltip, link }, for the pointer handlers
     const darkScene = darkAppearance();
 
     const ids = diagram.shapes.map((s) => s.id);
-    const isContainer = (id) => ids.some((o) => o.startsWith(`${id}.`));
+    const byId = new Map(diagram.shapes.map((s) => [s.id, s]));
+    // A sequence diagram nests spans and notes *inside* actors, but draws them
+    // beside the actor down its lifeline. Everything in one stands on the
+    // diagram's own platform, and only its groups (d2 marks them `blend`) are
+    // areas; an actor with spans is still an actor, not a platform.
+    const sequenceOf = (id) => {
+      for (let i = id.lastIndexOf('.'); i > 0; i = id.lastIndexOf('.', i - 1)) {
+        const up = byId.get(id.slice(0, i));
+        if (up?.type === 'sequence_diagram') return up;
+      }
+      return null;
+    };
+    const isContainer = (id) => {
+      const s = byId.get(id);
+      if (s?.type === 'sequence_diagram') return true;
+      if (sequenceOf(id)) return !!s?.blend;
+      return ids.some((o) => o.startsWith(`${id}.`));
+    };
+    const liftOf = (s) => {
+      const seq = sequenceOf(s.id);
+      return seq ? seq.level * PAD : ((s.level ?? 1) - 1) * PAD;
+    };
+    const depthOf = (s) => (s.type === 'image' ? s.height
+      : isPanel(s) ? SLAB
+        : heightOf(typeOf(s), s.width, s.height, isContainer(s.id)));
 
     // d2 lays out in screen coordinates; the model is centred so orbiting spins
     // around the diagram rather than around wherever d2 happened to put it.
@@ -759,9 +967,10 @@
       const source = sourceShapes.get(s.id);
       const container = isContainer(s.id);
       const type = typeOf(s);
-      const note = type === 'text';
-      const rule = styles.get(s.id) ?? {};
-      const visual = paintOf(s.id, rule);
+      const note = type === 'text' && !isPanel(s);
+      const icon = iconUrl(s.icon);
+      if (s.tooltip || s.link) meta.set(s.id, { tooltip: s.tooltip, link: s.link });
+      const visual = paintOf(s);
       visual.darkScene = darkScene;
       const { fill, stroke } = visual;
       const family = container ? 'pad' : (SKIN[familyOf(type)] ? familyOf(type) : 'block');
@@ -771,14 +980,14 @@
         : darkScene && !visual.explicitFill
           ? new THREE.Color(DARK_FAMILY[family] ?? DARK_FAMILY.block).lerp(themeShell, 0.18)
           : themeShell;
-      const accentColor = container && darkScene && !rule.stroke
+      const accentColor = container && darkScene && !visual.explicitStroke
         ? new THREE.Color(0x587790)
         : studioColor(stroke, darkScene ? 0.64 : 0.5, 0.92);
       const [cx, cz] = at((s.pos?.x ?? 0) + s.width / 2, (s.pos?.y ?? 0) + s.height / 2);
       // Children stand *on* their container's platform, not on the world floor —
       // otherwise every one of them is buried to the depth of the pad. d2's level
       // counts the nesting, and every platform is the same thickness.
-      const lift = ((s.level ?? 1) - 1) * PAD;
+      const lift = liftOf(s);
 
       // A note is borderless by definition — d2 draws it as bare markdown, so in
       // 3D it is its label and nothing else. Give it a body and it becomes a box,
@@ -813,7 +1022,7 @@
       // whole scene down; a plain one is a better failure than a black canvas.
       const spec = SKIN[family];
       const glow = container ? (darkScene ? 0.08 : 0.32) : 1;
-      const depth = heightOf(type, s.width, s.height, container);
+      const depth = depthOf(s);
       const markThemed = (material) => {
         material.userData.themePart = true;
         return material;
@@ -897,7 +1106,10 @@
         },
       };
 
-      const body = bodyFor({ type, width: s.width, height: s.height, container }, M);
+      const body = s.type === 'image'
+        ? (icon ? picture(icon, s.width, s.height, s.id) : new THREE.Group())
+        : isPanel(s) ? panelBody(s, M)
+          : bodyFor({ type, width: s.width, height: s.height, container }, M);
 
       // add, not set: bodyFor already seated it on the floor and centred it.
       body.position.x += cx;
@@ -918,7 +1130,19 @@
       applyStyle(body, visual);
       group.add(body);
 
-      if (s.label || source?.md) {
+      // An icon floats over its object; a group's sits in the platform's corner
+      // so the children standing on it don't hide it.
+      if (icon && s.type !== 'image') {
+        const size = Math.min(72, Math.min(s.width, s.height) * (container ? 0.3 : 0.5));
+        const badge = picture(icon, size, size, s.id);
+        badge.position.add(container
+          ? new THREE.Vector3(cx - s.width / 2 + size * 0.7, lift + depth + 4, cz - s.height / 2 + size * 0.7)
+          : new THREE.Vector3(cx, lift + depth + 6, cz - s.height * 0.15));
+        group.add(badge);
+      }
+
+      // A table, class, code block or formula carries its label in its drawing.
+      if ((s.label || source?.md) && !isPanel(s)) {
         const summary = source?.md ? markdownHint(s.label) : null;
         const tag = source?.md
           ? plaque(`${source.name} · ${summary.text}`, visual.label.size ?? 25, visual.label)
@@ -932,7 +1156,8 @@
         const frontClearance = Math.max(5, tag.scale.y * 0.14);
         tag.position.set(
           cx,
-          lift + depth + verticalClearance,
+          // d2 captions a picture underneath it; anywhere higher covers it.
+          lift + (s.type === 'image' ? 0 : depth) + verticalClearance,
           cz + s.height / 2 + frontClearance,
         );
         tag.userData = { id: s.id };
@@ -956,11 +1181,10 @@
     // objects rather than as markings painted on the ground.
     const LIFT = 16;
     const solid = new Map(diagram.shapes.map((s) => {
-      const container = ids.some((o) => o.startsWith(`${s.id}.`));
       const [x, z] = at((s.pos?.x ?? 0) + s.width / 2, (s.pos?.y ?? 0) + s.height / 2);
-      const base = ((s.level ?? 1) - 1) * PAD;
+      const base = liftOf(s);
       return [s.id, {
-        x, z, base, top: base + heightOf(typeOf(s), s.width, s.height, container),
+        x, z, base, top: base + depthOf(s),
         half: { x: s.width / 2, z: s.height / 2 },
       }];
     }));
@@ -980,7 +1204,7 @@
       const from = solid.get(c.src), to = solid.get(c.dst);
       // Connections are present in d2's SVG map too, so their resolved stroke
       // follows the selected light/dark theme just like shape accents do.
-      const connectionPaint = paintOf(c.id, styles.get(c.id) ?? {});
+      const connectionPaint = paintOf(c);
       const currentColor = studioColor(
         connectionPaint.stroke,
         darkScene ? 0.67 : 0.53,
@@ -1065,7 +1289,8 @@
 
       // A real conduit first, with a narrow animated light strip riding just
       // above its surface. Transparent gaps reveal the dark hose underneath.
-      const tubeGeo = new THREE.TubeGeometry(wireCurve, tubeSegments, 3.2, tubeSides, false);
+      const dash = c.strokeDash > 0 ? c.strokeDash : 0;
+      const tubeGeo = cableGeometry(wireCurve, 3.2, tubeSegments, tubeSides, dash);
       const tube = new THREE.Mesh(tubeGeo, new THREE.MeshStandardMaterial({
         color: 0x26323a, metalness: 0.68, roughness: 0.38, envMapIntensity: 1.1,
       }));
@@ -1078,7 +1303,7 @@
 
       const current = currentMaterial(currentColor, reverseCurrentColor, forward, backward);
       const strip = new THREE.Mesh(
-        new THREE.TubeGeometry(wireCurve, tubeSegments, 3.46, tubeSides, false),
+        cableGeometry(wireCurve, 3.46, tubeSegments, tubeSides, dash),
         energized ? current : new THREE.MeshBasicMaterial({
           color: 0x51616a, transparent: true, opacity: 0.12,
           depthWrite: false, toneMapped: false,
@@ -1096,19 +1321,30 @@
         const sample = t ? 1 - headCentre : headCentre;
         const dir = curve.getTangentAt(sample).normalize().multiplyScalar(t ? 1 : -1);
         const headColor = t ? currentColor : reverseCurrentColor;
-        const head = physicalArrow(curve.getPointAt(sample), dir, c.id, headColor);
+        const head = physicalArrow(curve.getPointAt(sample), dir, c.id, headColor, arrow);
         group.add(head);
       }
+
+      // Arrowhead labels — cardinality on an ER link, mostly — sit by their end.
+      for (const [end, t] of [[c.srcLabel, 0.1], [c.dstLabel, 0.9]]) {
+        if (!end?.label) continue;
+        const tag = plaque(end.label, 18);
+        tag.position.copy(curve.getPointAt(t)).add(new THREE.Vector3(0, 16, 0));
+        tag.userData = { id: c.id };
+        group.add(tag);
+      }
+      if (c.tooltip || c.link) meta.set(c.id, { tooltip: c.tooltip, link: c.link });
 
       if (c.label) {
         const tag = plaque(c.label, 24);
         tag.position.copy(curve.getPointAt(0.5)).add(new THREE.Vector3(0, 20, 0));
+        tag.userData = { id: c.id };
         group.add(tag);
       }
     }
 
     return {
-      group, dashes, mdPanels,
+      group, dashes, mdPanels, meta,
       radius: Math.max(120, bounds.getSize(new THREE.Vector2()).length() / 2),
     };
   }
@@ -1120,6 +1356,7 @@
       // Label and dash textures are one per object; the family skins are shared
       // by every material and have to outlive the rebuild that drops them.
       for (const m of mats) {
+        m.userData.gone = true;
         for (const t of [m.map, m.emissiveMap]) if (t && !shared.has(t)) t.dispose();
         m.dispose();
       }
@@ -1305,7 +1542,7 @@
 
     world = {
       renderer, scene, camera, controls, key, hemi, fillLight, grid,
-      model: null, dashes: [], mdPanels: new Map(), openMd: new Set(), radius: 400,
+      model: null, dashes: [], mdPanels: new Map(), meta: new Map(), openMd: new Set(), radius: 400,
       hasMotion: false, invalidate: null,
     };
     ready = true;
@@ -1331,8 +1568,19 @@
     renderer.domElement.addEventListener('pointermove', (e) => {
       const id = hitId(e);
       if (id !== hovering) { hovering = id; app.hover = id; }
+      const m = world.meta.get(id);
+      renderer.domElement.style.cursor = m?.link ? 'pointer' : '';
+      const r = renderer.domElement.getBoundingClientRect();
+      tip = m?.tooltip ? { text: m.tooltip, x: e.clientX - r.left, y: e.clientY - r.top } : null;
     });
-    renderer.domElement.addEventListener('pointerleave', () => { hovering = null; app.hover = null; });
+    renderer.domElement.addEventListener('pointerleave', () => { hovering = null; app.hover = null; tip = null; });
+
+    /** A d2 link is either another board of this file or a web address. */
+    function follow(link) {
+      const board = link.replace(/^root\.?/, '');
+      if (board === '' || app.boards.some((b) => b.path === board)) app.board = board;
+      else if (!unsafeAttr('href', link)) window.open(link, '_blank', 'noopener');
+    }
 
     // OrbitControls also consumes pointer gestures. Only a stationary press is
     // a disclosure click; dragging continues to orbit without toggling a hint.
@@ -1348,7 +1596,11 @@
       pressed = null;
       const id = hitId(e);
       const disclosure = world.mdPanels.get(id);
-      if (!disclosure) return;
+      if (!disclosure) {
+        const link = world.meta.get(id)?.link;
+        if (link) follow(link);
+        return;
+      }
       const open = !world.openMd.has(id);
       if (open) world.openMd.add(id);
       else world.openMd.delete(id);
@@ -1510,8 +1762,9 @@
 
     const first = !world.model;
     if (world.model) { world.scene.remove(world.model); dispose(world.model); }
-    const { group, dashes, mdPanels, radius } = build(diagram);
+    const { group, dashes, mdPanels, meta, radius } = build(diagram);
     world.model = group;
+    world.meta = meta;
     world.dashes = dashes;
     world.mdPanels = mdPanels;
     world.radius = radius ?? 400;
@@ -1551,6 +1804,7 @@
   <canvas bind:this={canvas}></canvas>
   <button class="reset" onclick={fit} title={t('scene.frame')}>⤢</button>
   <p class="hint">{t('scene.hint')}</p>
+  {#if tip}<p class="tip" style="left: {tip.x + 14}px; top: {tip.y + 14}px">{tip.text}</p>{/if}
 </div>
 
 <style>
@@ -1564,6 +1818,12 @@
     color: #dbeafe; font: inherit; font-size: 13px;
   }
   .reset:hover { background: rgb(16 38 58 / 0.9); }
+
+  .tip {
+    position: absolute; margin: 0; max-inline-size: 280px; pointer-events: none;
+    padding: 5px 9px; border-radius: 7px; font-size: 12px; white-space: pre-wrap;
+    border: 1px solid rgb(120 180 240 / 0.3); background: rgb(8 20 32 / 0.92); color: #dbeafe;
+  }
 
   .hint {
     position: absolute; inset-block-end: 10px; inset-inline-start: 50%;

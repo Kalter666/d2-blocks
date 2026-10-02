@@ -70,7 +70,12 @@ object’s resolved theme and style are read from the shape d2 drew, so the ligh
 and dark theme selectors work in both views without duplicating d2's palettes.
 Appearance can follow the system or be forced light/dark; choosing a palette
 automatically previews its matching appearance.
-Style blocks translate into 3D material colour, opacity, surface relief, shadows,
+Tables, UML classes, code and LaTeX become slabs carrying d2's own drawing of
+them; icons and `shape: image` stand as pictures; sequence diagrams keep their
+lifelines; every d2 arrowhead (crow's feet included), arrowhead labels, dashes,
+tooltips and links carry over. Files with `layers`, `scenarios` or `steps` get a
+**board** picker in the toolbar, for both looks.
+Styles — from style blocks, classes, vars or globs alike — translate into 3D material colour, opacity, surface relief, shadows,
 label typography and animation. The marching connections and styled object
 animation stop under `prefers-reduced-motion: reduce`.
 

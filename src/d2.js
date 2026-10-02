@@ -1,6 +1,7 @@
 import { D2 } from '@terrastruct/d2';
 import { sanitize } from './sanitize.js';
 import { serial } from './serial.js';
+import { boardAt, boardPaths } from './boards.js';
 
 // One instance, one worker — until one dies. d2 runs as Go compiled to wasm in a
 // web worker, and a panic in there takes the worker with it *silently*: no error
@@ -43,10 +44,12 @@ export function draw(src, opts = {}) {
  * `darkThemeID` makes d2 emit a prefers-color-scheme block, so the diagram
  * follows the OS theme the same way the rest of the app does.
  */
-async function render(src, { layout = 'dagre', themeID = 0, darkThemeID = 200, sketch = false }) {
+async function render(src, { layout = 'dagre', themeID = 0, darkThemeID = 200, sketch = false, board = '' }) {
   const r = await watch(d2.compile(src || '', { layout, themeID, darkThemeID, sketch, pad: 24 }));
-  const svg = await watch(d2.render(r.diagram, { ...r.renderOptions, scale: 1, noXMLTag: true }));
-  return { svg: sanitize(svg), diagram: r.diagram };
+  // A board that was renamed or deleted in the source falls back to the root.
+  const shown = boardAt(r.diagram, board) ? board : '';
+  const svg = await watch(d2.render(r.diagram, { ...r.renderOptions, scale: 1, noXMLTag: true, ...(shown && { target: shown }) }));
+  return { svg: sanitize(svg), diagram: boardAt(r.diagram, shown), boards: boardPaths(r.diagram), board: shown };
 }
 
 /**

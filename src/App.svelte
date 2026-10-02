@@ -40,15 +40,17 @@
     const forced = app.appearance;
     const selectedThemeID = forced === 'dark' ? app.darkTheme : app.theme;
     const selectedDarkThemeID = forced === 'light' ? app.theme : app.darkTheme;
-    const [text, layout, themeID, darkThemeID, sketch] =
-      [src, app.layout, selectedThemeID, selectedDarkThemeID, app.sketch];
+    const [text, layout, themeID, darkThemeID, sketch, board] =
+      [src, app.layout, selectedThemeID, selectedDarkThemeID, app.sketch, app.board];
     const mine = ++token;
     app.busy = true;
     const timer = setTimeout(async () => {
       try {
-        const { svg, diagram } = await draw(text, { layout, themeID, darkThemeID, sketch });
+        const { svg, diagram, boards, board: shown } =
+          await draw(text, { layout, themeID, darkThemeID, sketch, board });
         if (mine !== token) return;
-        Object.assign(app, { svg, diagram, error: '' });
+        Object.assign(app, { svg, diagram, boards, error: '' });
+        if (shown !== board) app.board = shown;
       } catch (e) {
         if (mine === token) app.error = String(e?.message ?? e).trim();
       } finally {
@@ -176,6 +178,15 @@
       <option value="flat">{t('look.flat')}</option>
     </select>
   </label>
+
+  {#if app.boards.length}
+    <label>{t('toolbar.board')}
+      <select bind:value={app.board}>
+        <option value="">{t('board.root')}</option>
+        {#each app.boards as b}<option value={b.path}>{t(`board.${b.kind}`)}: {b.label}</option>{/each}
+      </select>
+    </label>
+  {/if}
 
   <label>{t('toolbar.appearance')}
     <select bind:value={app.appearance}>
