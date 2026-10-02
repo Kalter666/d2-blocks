@@ -78,7 +78,7 @@ export const empty = () => [{ type: 'direction', value: 'right' }];
 // ponytail: names are quoted unless they're plainly safe. Over-quoting is
 // harmless in d2; under-quoting silently changes the diagram (a `.` nests, a
 // `->` connects), so the regex errs toward quoting.
-const SAFE_NAME = /^[A-Za-z_][\w -]*$/;
+const SAFE_NAME = /^[\p{L}_][\p{L}\p{N}_ -]*$/u;
 const q = (s) => (SAFE_NAME.test(s) && !/-[->]/.test(s) ? s : JSON.stringify(s));
 
 /** A name as it appears in a d2 key — what links and styles must reference. */
@@ -205,6 +205,13 @@ const unq = (s) => {
   return t;
 };
 
+/**
+ * Syntax with no block of its own, kept verbatim: `a; b` (several statements),
+ * globs and filters (`*.style…`, `&shape: x`), and escapes (`\#`). Quoted text
+ * is ignored, since `"a;b"` is just a name.
+ */
+const opaque = (t) => /[;*\\]/.test(t.replace(/"(?:[^"\\]|\\.)*"/g, '')) || /^!?&/.test(t);
+
 const RE = {
   quoted: /^("(?:[^"\\]|\\.)*"|'[^']*')$/,
   group: /^(.+?):\s*(.*?)\s*\{$/,
@@ -213,7 +220,7 @@ const RE = {
   style: /^(.+)\.style\.([\w-]+):\s*(.*)$/,
   direction: /^direction:\s*(up|down|left|right)$/,
   labelled: /^([^:{}]+?):\s*([^{}]*)$/,
-  bare: /^[A-Za-z_][\w -]*$/,
+  bare: /^[\p{L}_][\p{L}\p{N}_ -]*$/u,
   // A block string opener: `key: |md`, `key: ||latex`, `key: |`. The tag decides
   // whether we can model it; the fence has to be captured either way so the body
   // gets consumed rather than scanned.
@@ -223,7 +230,7 @@ const RE = {
   // d2's own keywords. As a line on their own they set something on the
   // enclosing map, so they are never boxes; as a map they hold definitions or
   // whole other boards, never children.
-  keyword: /^(?:label|shape|icon|width|height|constraint|tooltip|link|near|class|top|left|filled|grid-[\w-]+|vertical-gap|horizontal-gap|(?:source|target)-arrowhead|style)(?:\.[\w-]+)*\s*:/,
+  keyword: /^(?:[^:{}"]*\.)?(?:label|shape|icon|width|height|constraint|tooltip|link|near|class|top|left|filled|grid-[\w-]+|vertical-gap|horizontal-gap|(?:source|target)-arrowhead|style)(?:\.[\w-]+)*\s*:/,
   defs: /^(?:classes|vars|layers|scenarios|steps)\s*:\s*\{$/,
 };
 
@@ -272,8 +279,8 @@ function parseLine(text, scope) {
   // A fully quoted line is a name we quoted precisely so it wouldn't be read as
   // a connection or a path — so it has to be checked before either of those.
   if (RE.quoted.test(t)) return { type: 'box', name: unq(t), label: '', shape: '' };
+  if (opaque(t)) return null;
   if ((m = RE.direction.exec(t))) return { type: 'direction', value: m[1] };
-  if (RE.keyword.test(t)) return null;
   if ((m = RE.boxShape.exec(t))) {
     return { type: 'box', name: unq(m[1]), label: m[2] ? unq(m[2]) : '', shape: m[3] };
   }
@@ -283,6 +290,7 @@ function parseLine(text, scope) {
   if ((m = RE.style.exec(t))) {
     return { type: 'style', target: absolutize(m[1], scope), prop: m[2], value: unq(m[3]) };
   }
+  if (RE.keyword.test(t)) return null;
   // A link's src/dst are keys, not free text — bail out if they look like prose.
   if ((m = RE.link.exec(t)) && !m[1].includes(':')) {
     return {
@@ -359,7 +367,7 @@ export function parse(src) {
     // A connection with a map body (arrowheads, per-link styles), classes, vars,
     // boards, tables and UML classes aren't something we emit, so the whole body goes to one raw block — line by line it would be
     // read as a label of "{" and a run of stray boxes.
-    if (g && (/(->|<-|--|<->)/.test(g[1]) || RE.defs.test(t) || RE.keyword.test(t) || isRecord(lines, i))) {
+    if (g && (/(->|<-|--|<->)/.test(g[1]) || RE.defs.test(t) || RE.keyword.test(t) || opaque(g[1]) || isRecord(lines, i))) {
       const end = closing(lines, i);
       if (end != null) {
         top().push({ type: 'raw', text: lines.slice(i, end + 1).join('\n') });

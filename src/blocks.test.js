@@ -317,3 +317,19 @@ test('a group holding a table is still a group', () => {
   assert.equal(blocks[0].type, 'group');
   assert.equal(blocks[0].children[0].type, 'raw');
 });
+
+test('syntax the blocks cannot hold comes back verbatim', () => {
+  const src = [
+    'café: Кофе ☕',
+    'x.class: [a; b]',
+    'a; b: {shape: circle}',
+    '*: {',
+    '  &shape: circle',
+    '  style.fill: yellow',
+    '}',
+    'tag: \\#hashtag',
+    '',
+  ].join('\n');
+  assert.equal(serialize(parse(src)) + '\n', src);
+  assert.equal(parse(src)[0].type, 'box', 'a unicode name is still a box');
+});
