@@ -78,7 +78,7 @@ export const empty = () => [{ type: 'direction', value: 'right' }];
 // ponytail: names are quoted unless they're plainly safe. Over-quoting is
 // harmless in d2; under-quoting silently changes the diagram (a `.` nests, a
 // `->` connects), so the regex errs toward quoting.
-const SAFE_NAME = /^[A-Za-z_][\w -]*$/;
+const SAFE_NAME = /^[\p{L}_][\p{L}\p{N}_ -]*$/u;
 const q = (s) => (SAFE_NAME.test(s) && !/-[->]/.test(s) ? s : JSON.stringify(s));
 
 /** A name as it appears in a d2 key — what links and styles must reference. */
@@ -205,6 +205,13 @@ const unq = (s) => {
   return t;
 };
 
+/**
+ * Syntax with no block of its own, kept verbatim: `a; b` (several statements),
+ * globs and filters (`*.style…`, `&shape: x`), and escapes (`\#`). Quoted text
+ * is ignored, since `"a;b"` is just a name.
+ */
+const opaque = (t) => /[;*\\]/.test(t.replace(/"(?:[^"\\]|\\.)*"/g, '')) || /^!?&/.test(t);
+
 const RE = {
   quoted: /^("(?:[^"\\]|\\.)*"|'[^']*')$/,
   group: /^(.+?):\s*(.*?)\s*\{$/,
@@ -213,13 +220,18 @@ const RE = {
   style: /^(.+)\.style\.([\w-]+):\s*(.*)$/,
   direction: /^direction:\s*(up|down|left|right)$/,
   labelled: /^([^:{}]+?):\s*([^{}]*)$/,
-  bare: /^[A-Za-z_][\w -]*$/,
+  bare: /^[\p{L}_][\p{L}\p{N}_ -]*$/u,
   // A block string opener: `key: |md`, `key: ||latex`, `key: |`. The tag decides
   // whether we can model it; the fence has to be captured either way so the body
   // gets consumed rather than scanned.
   blockOpen: /^(.+?):\s*(\|+)(\w*)\s*$/,
   mdLabel: /^label:\s*(\|+)md\s*$/,
   shapeOnly: /^shape:\s*(\w+)$/,
+  // d2's own keywords. As a line on their own they set something on the
+  // enclosing map, so they are never boxes; as a map they hold definitions or
+  // whole other boards, never children.
+  keyword: /^(?:[^:{}"]*\.)?(?:label|shape|icon|width|height|constraint|tooltip|link|near|class|top|left|filled|grid-[\w-]+|vertical-gap|horizontal-gap|(?:source|target)-arrowhead|style)(?:\.[\w-]+)*\s*:/,
+  defs: /^(?:classes|vars|layers|scenarios|steps)\s*:\s*\{$/,
 };
 
 /** Consume a block string opened at `lines[i]`. Null if it never closes. */
@@ -267,13 +279,18 @@ function parseLine(text, scope) {
   // A fully quoted line is a name we quoted precisely so it wouldn't be read as
   // a connection or a path — so it has to be checked before either of those.
   if (RE.quoted.test(t)) return { type: 'box', name: unq(t), label: '', shape: '' };
+  if (opaque(t)) return null;
   if ((m = RE.direction.exec(t))) return { type: 'direction', value: m[1] };
-  if ((m = RE.style.exec(t))) {
-    return { type: 'style', target: absolutize(m[1], scope), prop: m[2], value: unq(m[3]) };
-  }
   if ((m = RE.boxShape.exec(t))) {
     return { type: 'box', name: unq(m[1]), label: m[2] ? unq(m[2]) : '', shape: m[3] };
   }
+  // Any other brace is an inline map (`a: { b; c }`), which none of the patterns
+  // below understand — `x: { y.style.fill: red }` reads as a style on `x: { y`.
+  if (/[{}]/.test(t)) return null;
+  if ((m = RE.style.exec(t))) {
+    return { type: 'style', target: absolutize(m[1], scope), prop: m[2], value: unq(m[3]) };
+  }
+  if (RE.keyword.test(t)) return null;
   // A link's src/dst are keys, not free text — bail out if they look like prose.
   if ((m = RE.link.exec(t)) && !m[1].includes(':')) {
     return {
@@ -287,6 +304,26 @@ function parseLine(text, scope) {
   if ((m = RE.labelled.exec(t))) return { type: 'box', name: unq(m[1]), label: unq(m[2]), shape: '' };
   if (RE.bare.test(t)) return { type: 'box', name: t, label: '', shape: '' };
   return null;
+}
+
+/** The line that closes the map opened at `lines[i]`. ponytail: counts braces, blind to ones in quotes. */
+function closing(lines, i) {
+  let depth = 0;
+  for (let j = i; j < lines.length; j++) {
+    for (const ch of lines[j]) depth += ch === '{' ? 1 : ch === '}' ? -1 : 0;
+    if (depth === 0) return j;
+  }
+  return null;
+}
+
+/** A table or class: its body is columns and members (`+id: int`), not boxes. */
+function isRecord(lines, i) {
+  let depth = 0;
+  for (let j = i + 1; j < lines.length && depth >= 0; j++) {
+    if (depth === 0 && /^\s*shape:\s*(sql_table|class)\s*$/.test(lines[j])) return true;
+    for (const ch of lines[j]) depth += ch === '{' ? 1 : ch === '}' ? -1 : 0;
+  }
+  return false;
 }
 
 export function parse(src) {
@@ -327,6 +364,17 @@ export function parse(src) {
     // Ends in `{`, so an inline map (`x: {shape: y}`) can't reach here. A
     // connection with a map body isn't something we emit — leave it to raw.
     const g = RE.group.exec(t);
+    // A connection with a map body (arrowheads, per-link styles), classes, vars,
+    // boards, tables and UML classes aren't something we emit, so the whole body goes to one raw block — line by line it would be
+    // read as a label of "{" and a run of stray boxes.
+    if (g && (/(->|<-|--|<->)/.test(g[1]) || RE.defs.test(t) || RE.keyword.test(t) || opaque(g[1]) || isRecord(lines, i))) {
+      const end = closing(lines, i);
+      if (end != null) {
+        top().push({ type: 'raw', text: lines.slice(i, end + 1).join('\n') });
+        i = end;
+        continue;
+      }
+    }
     if (g && !/(->|<-|--|<->)/.test(g[1])) {
       const md = takeMdMap(lines, i, g);
       if (md) { top().push(md.block); i = md.next - 1; continue; }

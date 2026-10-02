@@ -5,6 +5,8 @@ can put in a pull request.
 
 **→ [kalter666.github.io/d2-blocks](https://kalter666.github.io/d2-blocks/)**
 
+![Blocks become a 3D diagram; an example from the gallery; flat and 3D looks](docs/demo.gif)
+
 Runs entirely in the browser — no server, no accounts. Deploys to GitHub Pages
 as a static site.
 
@@ -70,7 +72,12 @@ object’s resolved theme and style are read from the shape d2 drew, so the ligh
 and dark theme selectors work in both views without duplicating d2's palettes.
 Appearance can follow the system or be forced light/dark; choosing a palette
 automatically previews its matching appearance.
-Style blocks translate into 3D material colour, opacity, surface relief, shadows,
+Tables, UML classes, code and LaTeX become slabs carrying d2's own drawing of
+them; icons and `shape: image` stand as pictures; sequence diagrams keep their
+lifelines; every d2 arrowhead (crow's feet included), arrowhead labels, dashes,
+tooltips and links carry over. Files with `layers`, `scenarios` or `steps` get a
+**board** picker in the toolbar, for both looks.
+Styles — from style blocks, classes, vars or globs alike — translate into 3D material colour, opacity, surface relief, shadows,
 label typography and animation. The marching connections and styled object
 animation stop under `prefers-reduced-motion: reduce`.
 
@@ -117,6 +124,7 @@ the toolbar didn't understand.
 npm install
 npm run dev      # http://localhost:5173/d2-blocks/
 npm test         # round-trip + real-compiler checks
+npm run test:e2e # Playwright, incl. e2e/syntax.spec.js: every d2 construct
 npm run build
 ```
 
@@ -164,6 +172,7 @@ pipeline and no hit-testing geometry.
 | `src/blocks.js` | block schema, `serialize`, `parse`, tree moves — the core |
 | `src/store.svelte.js` | app state, undo history, persistence |
 | `src/d2.js` | compile + render, and the SVG ↔ id index |
+| `src/boards.js` | layers / scenarios / steps: listing and picking a board |
 | `src/md.js` | the markdown ⟷ HTML bridge behind the rich-text editor |
 | `src/models.js` | the 3D bodies — DOM-free geometry, so a test can measure them |
 | `src/Scene.svelte` | the three.js renderer: skins, materials, lights, camera |
@@ -192,7 +201,11 @@ pipeline and no hit-testing geometry.
   d2 laid out, so the 3D view and the flat one agree about where things are.
 - **3D shows one line of each label.** Labels are drawn into a canvas texture, so a
   markdown note appears in 3D as its first line — read it in flat mode or on the
-  block. Icons and tooltips aren't carried over either.
+  block.
+- **Icons need CORS in 3D.** An icon becomes a WebGL texture, so its host must
+  send `Access-Control-Allow-Origin`; one that doesn't is simply left out of the
+  3D view (flat still shows it). icons.terrastruct.com's CDN sends it
+  inconsistently.
 - **three.js costs ~150 kB gzipped** on top of the d2 wasm. It is bundled, not
   lazy-loaded, so flat-mode-only users pay for it too.
 - **Rich text is a box, not a group.** A markdown label on a group turns it into

@@ -14,6 +14,8 @@ export const app = $state({
   dragging: null,
   svg: '',
   diagram: null,
+  board: '',     // d2 target path of the board on screen; '' is the root
+  boards: [],    // every layer/scenario/step in the source — see boards.js
   error: '',
   busy: true,
 });
