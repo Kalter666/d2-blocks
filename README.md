@@ -44,6 +44,30 @@ Two things fall out of blocks mapping 1:1 onto d2 statements:
   vars, classes or imports, edit something unrelated, and the parts this editor
   doesn't understand come back byte-for-byte.
 
+## Features
+
+Each one has a short demo in **[docs/FEATURES.md](docs/FEATURES.md)**:
+
+- [Build with blocks](docs/FEATURES.md#build-with-blocks) — assemble a diagram without typing syntax
+- [Edit or paste d2](docs/FEATURES.md#edit-or-paste-d2) — the source pane is live; pasted files round-trip byte-for-byte
+- [Connections that can't invent boxes](docs/FEATURES.md#connections-that-cant-invent-boxes) — both ends are dropdowns
+- [Shapes are roles](docs/FEATURES.md#shapes-are-roles) — *Database*, *Queue*, *User* instead of d2 names
+- [Groups and nesting](docs/FEATURES.md#groups-and-nesting) — drag blocks into containers
+- [Styles](docs/FEATURES.md#styles) — one property per block, only values d2 accepts
+- [Rich text labels](docs/FEATURES.md#rich-text-labels) — markdown with a small editor
+- [Undo and redo](docs/FEATURES.md#undo-and-redo)
+- [3D look](docs/FEATURES.md#3d-look) — real solids with an orbit camera
+- [Hover links both sides](docs/FEATURES.md#hover-links-both-sides) — block ⟷ object highlighting
+- [Layout, direction and sketch](docs/FEATURES.md#layout-direction-and-sketch) — dagre or ELK, any direction
+- [Themes and appearance](docs/FEATURES.md#themes-and-appearance) — every d2 palette, light and dark
+- [Tables, classes, code, icons and tooltips](docs/FEATURES.md#tables-classes-code-icons-and-tooltips) — in 3D too
+- [Sequence diagrams](docs/FEATURES.md#sequence-diagrams)
+- [Layers, scenarios and steps](docs/FEATURES.md#layers-scenarios-and-steps) — a board picker for multi-board files
+- [Examples gallery](docs/FEATURES.md#examples-gallery) — thirty-odd architectures with live previews
+- [Mermaid import](docs/FEATURES.md#mermaid-import) — and Copy Mermaid back out
+- [Export](docs/FEATURES.md#export) — Copy d2, Copy Mermaid, Download SVG
+- [Language](docs/FEATURES.md#language) — English and Russian
+
 ## Shapes are roles
 
 The shape dropdown lists what people actually draw — *Database*, *Queue*, *User*,

@@ -28,6 +28,7 @@
   let ready = $state(false);
 
   const BG = 0x0b1017;
+  const HOVER = new THREE.Color(0x7dd3fc); // the tint a hovered object takes on
   const DARK_BG = 0x121c26; // dark-theme objects need separation from the stage
   const PAD = heightOf('', 0, 0, true); // a container platform's thickness
   const darkAppearance = () => app.appearance === 'dark'
@@ -1788,8 +1789,17 @@
       const flare = n.userData.id === id ? 2.6 : 1;
       // A shape is a group of parts, each with its own materials — flare all of
       // them, but leave the LEDs alone: MeshBasic has no emissive to raise.
+      // Flaring alone barely shows: most glow comes through a mostly-dark
+      // emissive map, and multiplying dark gives dark. So the surfaces are also
+      // tinted toward a highlight, which reads on any skin.
+      const lit = n.userData.id === id;
       n.traverse((p) => {
+        if (p.isSprite) return; // the label plaque keeps its own colours
         for (const m of Array.isArray(p.material) ? p.material : p.material ? [p.material] : []) {
+          if (m.color) {
+            m.userData.baseColor ??= m.color.clone();
+            m.color.copy(m.userData.baseColor).lerp(HOVER, lit ? 0.38 : 0);
+          }
           if (m.emissiveIntensity === undefined) continue;
           m.userData.baseEmissiveIntensity ??= m.emissiveIntensity;
           m.emissiveIntensity = m.userData.baseEmissiveIntensity * flare;

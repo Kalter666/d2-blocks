@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { serialize, parse, keys, remove, relativize, absolutize, targets } from './blocks.js';
+import { serialize, parse, keys, remove, relativize, absolutize, targets, removeBlock } from './blocks.js';
 
 const tree = [
   { type: 'direction', value: 'right' },
@@ -340,4 +340,12 @@ test('connection targets include compiled shapes and the current value', () => {
   assert.deepEqual(keysOf(targets(blocks)), ['api']);
   assert.deepEqual(keysOf(targets(blocks, ['api', 'orders'], ['api', 'orders.id'])), ['api', 'orders', 'orders.id']);
   assert.equal(targets(blocks, [], ['orders.id'])[1].name, 'id');
+});
+
+test('deleting a box takes its connections and styles with it', () => {
+  const blocks = parse('web\napi\nBackend: {\n  db\n}\nweb -> api\napi -> Backend.db\nweb.style.fill: red\napi.style.fill: blue\n');
+  removeBlock(blocks, blocks.find((b) => b.name === 'web'));
+  assert.equal(serialize(blocks), 'api\nBackend: {\n  db\n}\napi -> Backend.db\napi.style.fill: blue');
+  removeBlock(blocks, blocks.find((b) => b.name === 'Backend'));
+  assert.equal(serialize(blocks), 'api\napi.style.fill: blue');
 });

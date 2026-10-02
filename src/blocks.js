@@ -450,6 +450,27 @@ export function remove(blocks, target) {
   return blocks.some((b) => b.type === 'group' && remove(b.children, target));
 }
 
+/**
+ * Delete a block the way a person means it: a box or group takes its
+ * connections and styles with it. Left behind, `web -> api` would quietly
+ * recreate the deleted `web` — the phantom box the dropdowns exist to prevent.
+ * The mirror of renameKey, which carries those same references along.
+ */
+export function removeBlock(blocks, target) {
+  const key = keyOf(blocks, target);
+  if (!remove(blocks, target)) return false;
+  if (key == null) return true;
+  const gone = (k) => k === key || k?.startsWith(`${key}.`);
+  (function prune(list) {
+    for (let i = list.length - 1; i >= 0; i--) {
+      const b = list[i];
+      if ((b.type === 'link' && (gone(b.src) || gone(b.dst))) || (b.type === 'style' && gone(b.target))) list.splice(i, 1);
+      else if (b.type === 'group') prune(b.children);
+    }
+  })(blocks);
+  return true;
+}
+
 /** The list a block currently sits in, or null. */
 export function parentOf(blocks, target) {
   if (blocks.includes(target)) return blocks;

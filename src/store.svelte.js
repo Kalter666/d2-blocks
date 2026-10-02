@@ -1,4 +1,4 @@
-import { empty, serialize, parse, remove, moveInto, reorderIn } from './blocks.js';
+import { empty, serialize, parse, removeBlock, moveInto, reorderIn } from './blocks.js';
 import { toMermaid, fromMermaid } from './mermaid.js';
 
 export const app = $state({
@@ -77,7 +77,7 @@ const edit = (fn) => (...args) => {
 
 export const move = edit(moveInto);
 export const reorder = edit(reorderIn);
-export const del = edit(remove);
+export const del = edit(removeBlock);
 
 /**
  * The root direction belongs in the toolbar next to layout and theme, not in the
