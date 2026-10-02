@@ -54,3 +54,10 @@ test('non-flowchart diagrams are rejected', () => {
   assert.throws(() => fromMermaid('sequenceDiagram\n  A->>B: hi'), /flowchart/);
   assert.throws(() => fromMermaid('classDiagram\n  class A'), /flowchart/);
 });
+
+test('a subroutine node keeps its label and leaves no stray bracket', () => {
+  const blocks = fromMermaid('flowchart LR\n  api --> queue[[Jobs]]');
+  const queue = find(blocks, (b) => b.name === 'queue');
+  assert.equal(queue?.label, 'Jobs');
+  assert.ok(find(blocks, (b) => b.type === 'link' && b.dst === 'queue'));
+});

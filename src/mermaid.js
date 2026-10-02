@@ -30,6 +30,7 @@ const BRACKET_SHAPES = [
   ['((', '))', 'circle'],
   ['{{', '}}', 'hexagon'],
   ['[/', '/]', 'parallelogram'],
+  ['[[', ']]', ''], // subroutine — no distinct d2 shape
   ['{', '}', 'diamond'],
   ['[', ']', ''],
   ['(', ')', ''], // rounded — no distinct d2 shape
@@ -115,7 +116,7 @@ export function toMermaid(blocks) {
 // ------------------------------------------------------------------- import
 
 // A node token: id plus an optional shape bracket. Longest bracket forms first.
-const NODE_RE = /^([A-Za-z0-9_]+)(\[\(.*?\)\]|\(\(.*?\)\)|\(\[.*?\]\)|\[\/.*?\/\]|\{\{.*?\}\}|\{.*?\}|\[.*?\]|\(.*?\))?/;
+const NODE_RE = /^([A-Za-z0-9_]+)(\[\(.*?\)\]|\[\[.*?\]\]|\(\(.*?\)\)|\(\[.*?\]\)|\[\/.*?\/\]|\{\{.*?\}\}|\{.*?\}|\[.*?\]|\(.*?\))?/;
 const EDGE_RE = /^(<-->|<--|-->|---|-\.->|-\.-|===|==>|--)(?:\s*\|([^|]*)\|)?/;
 // [d2 arrow, reverse src/dst?]. Dotted/thick collapse to plain — no edge style.
 const ARROW_MAP = {
