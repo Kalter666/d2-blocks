@@ -5,6 +5,8 @@ can put in a pull request.
 
 **→ [kalter666.github.io/d2-blocks](https://kalter666.github.io/d2-blocks/)**
 
+![Blocks become a 3D diagram; an example from the gallery; flat and 3D looks](docs/demo.gif)
+
 Runs entirely in the browser — no server, no accounts. Deploys to GitHub Pages
 as a static site.
 
