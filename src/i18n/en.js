@@ -70,6 +70,8 @@ export default {
     'toast.copiedMermaid': 'mermaid copied to clipboard',
     'toast.exampleLoaded': '{title} loaded',
     'toast.mermaidImported': 'mermaid imported',
+    'toast.linkOpened': 'diagram opened from the link — undo brings back yours',
+    'toast.linkFailed': 'the link could not be opened: {reason}',
 
     // block editor — verbs and slots
     'block.verb.box': 'box',

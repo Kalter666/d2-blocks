@@ -69,6 +69,8 @@ export default {
     'toast.copiedMermaid': 'mermaid скопирован в буфер обмена',
     'toast.exampleLoaded': 'Пример «{title}» загружен',
     'toast.mermaidImported': 'mermaid импортирован',
+    'toast.linkOpened': 'диаграмма открыта по ссылке — отмена вернёт вашу',
+    'toast.linkFailed': 'ссылку не удалось открыть: {reason}',
 
     // редактор блоков — глаголы и поля
     'block.verb.box': 'блок',

@@ -142,6 +142,22 @@ else — a table, an image, raw HTML, a nested list — opens as a plain markdow
 textarea with a button to reformat, so editing can never quietly rewrite text
 the toolbar didn't understand.
 
+## Use it from an AI agent (MCP)
+
+The repo ships an [MCP](https://modelcontextprotocol.io) server that gives an
+agent the same d2 engine and editor logic the site runs: render d2 to SVG,
+check that a diagram compiles and survives the block editor, convert mermaid
+flowcharts, browse the examples, and hand back a link that opens the diagram
+here as editable blocks.
+
+```sh
+claude mcp add d2-blocks -- node /path/to/d2-blocks/mcp/server.js   # after npm install
+```
+
+Inside this repo Claude Code picks it up from `.mcp.json`. The link carries the
+diagram in the URL fragment (`#d2=…`, deflated), which browsers never send to a
+server; opening one replaces the current diagram, and undo brings yours back.
+
 ## Develop
 
 ```sh

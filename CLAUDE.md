@@ -25,6 +25,10 @@ npm run build               # BASE_PATH env overrides the /d2-blocks/ base
 
 When searching, skip `dist/`, `playwright-report/` and `test-results/` (build/test output; `dist/assets` holds the minified bundle with d2's wasm inlined).
 
+## MCP server
+
+`mcp/server.js` (stdio; `npm run mcp`, registered for this repo in `.mcp.json`) exposes the app to agents: `render_d2`, `check_d2` (compiles? round-trips through the editor? what stays raw?), `convert` (mermaid ⇄ d2), `examples`, and `open_in_editor`, which returns a link to the hosted editor with the diagram in a `#d2=` fragment (`src/share.js`; `App.svelte` opens it on mount, undoably). The tools in `mcp/tools.js` run the app's own modules under node — `draw()` included — so nothing is reimplemented; add a tool there and register it in `server.js`. Tests: `mcp/tools.test.js` (functions) and `mcp/server.test.js` (over stdio). stdout is the protocol channel: never `console.log` in `mcp/`.
+
 ## Which check after which edit
 
 | Edited | Run |
@@ -35,6 +39,7 @@ When searching, skip `dist/`, `playwright-report/` and `test-results/` (build/te
 | `src/i18n/*` | `npm test -- src/i18n/i18n.test.js` |
 | any `.svelte` | `npm run check`, then the matching e2e spec (`editing`, `source-history`, `modals`, `scene`, `dnd`, `i18n`) |
 | d2 syntax support | add a case to `e2e/syntax.spec.js`, run it with `-g` |
+| `mcp/*`, `src/share.js` | `npm test -- mcp/ src/share.test.js`, plus `e2e/share.spec.js` for the link |
 
 ## Architecture
 

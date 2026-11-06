@@ -76,7 +76,7 @@
       "includes": [
         "src/blocks.js", "src/boards.js", "src/history.js", "src/settings.js", "src/ids.js",
         "src/md.js", "src/mermaid.js", "src/serial.js", "src/models.js",
-        "src/3d/layout.js", "src/3d/cables.js", "src/examples/catalog.js"
+        "src/3d/layout.js", "src/3d/cables.js", "src/examples/catalog.js", "src/share.js"
       ],
       "linter": { "rules": { "style": { "noRestrictedGlobals": {
         "level": "error",

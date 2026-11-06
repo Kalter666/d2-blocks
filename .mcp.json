@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "d2-blocks": {
+      "command": "node",
+      "args": ["mcp/server.js"]
+    }
+  }
+}

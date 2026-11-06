@@ -3,7 +3,9 @@
   import Canvas from './Canvas.svelte';
   import Examples from './Examples.svelte';
   import MermaidImport from './MermaidImport.svelte';
+  import { onMount } from 'svelte';
   import { draw } from './d2.js';
+  import { decode } from './share.js';
   import { keys, newBlock, DIRECTIONS } from './blocks.js';
   import {
     app, source, add, undo, redo, canUndo, canRedo, save, saving, setSource, commit,
@@ -71,10 +73,28 @@
   const addLink = () => add(newBlock('link', options));
   const addStyle = () => add(newBlock('style', options));
 
-  function flash(msg) {
+  function flash(msg, ms = 1800) {
     toast = msg;
-    setTimeout(() => (toast = ''), 1800);
+    setTimeout(() => (toast = ''), ms);
   }
+
+  // A `#d2=` link (share.js; the MCP server's open_in_editor makes them) opens
+  // its diagram over whatever load() restored. commit() first, so the saved one
+  // is an undo away; the fragment is dropped so a reload doesn't import it again
+  // over later edits.
+  onMount(async () => {
+    try {
+      const shared = await decode(location.hash);
+      if (shared == null) return;
+      commit();
+      draft = null;
+      setSource(shared);
+      history.replaceState(null, '', location.pathname + location.search);
+      flash(t('toast.linkOpened'));
+    } catch (e) {
+      flash(t('toast.linkFailed', { reason: e.message }), 6000);
+    }
+  });
 
   async function copyCode() {
     await navigator.clipboard.writeText(src);
