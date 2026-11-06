@@ -15,9 +15,14 @@ test('render_d2 returns an SVG, and d2\'s error with line numbers', async () => 
 test('check_d2 reports compile, round-trip and what stays raw', async () => {
   const ok = await checkD2({ source: 'x -> y\nvars: {\n  n: 1\n}' });
   assert.equal(ok.compiles, true);
-  assert.equal(ok.roundTrips, true);
+  assert.equal(ok.roundTrip, 'exact');
   assert.deepEqual(ok.rawBlocks, ['vars: {\n  n: 1\n}']);
   assert.deepEqual([ok.shapes, ok.connections], [2, 1]);
+
+  // Hand-written spacing is reprinted canonically, and still draws the same.
+  const spaced = await checkD2({ source: 'u: User { shape: person }\nu -> v' });
+  assert.equal(spaced.roundTrip, 'reformatted');
+  assert.match(spaced.editorSource, /\{shape: person\}/);
 
   const bad = await checkD2({ source: 'a -> \n' });
   assert.equal(bad.compiles, false);

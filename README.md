@@ -144,19 +144,114 @@ the toolbar didn't understand.
 
 ## Use it from an AI agent (MCP)
 
-The repo ships an [MCP](https://modelcontextprotocol.io) server that gives an
-agent the same d2 engine and editor logic the site runs: render d2 to SVG,
-check that a diagram compiles and survives the block editor, convert mermaid
-flowcharts, browse the examples, and hand back a link that opens the diagram
-here as editable blocks.
+The repo ships an [MCP](https://modelcontextprotocol.io) server, so an agent
+(Claude Code, Claude Desktop, or any MCP client) can draw with the same d2
+engine and editor logic this site runs — and hand you a link that opens the
+result here as editable blocks.
+
+Try a link it made: **[order flow](https://kalter666.github.io/d2-blocks/#d2=RcwxDsMgEETRnlPMBXIBikgpU9mND0BgZFayAO0SKVHku0fQuH4zP4kydqnFQ2XP3b2N6rEZFT9YDo0ejWq14HShicdjfV6U-Qn7tPTyWDRR7dL4PaQkKs7Zxe2OmWhHiDTUMR_RAeMvxajd_QE)**,
+**[a login flowchart converted from mermaid](https://kalter666.github.io/d2-blocks/#d2=JcqxDQIxDEbh3lP8C7CAC9DlUt4SAVuJC-yTcxJCiN0RUL2veGKpt8PCGWl9HLQwSsZjalJhbNG7CswveM3RdmWItXu4vGll1DbHNVoK1d9rTgtOZxQq36yMp86_K8ODPg)**,
+**[the three-tier example](https://kalter666.github.io/d2-blocks/#d2=VY9BbsMgEEX3nGIu0AuwqGTZi6YL12pSZRmNYWojOeDMTBZRxN0r7NZWV8D_A7znA5PTkKIFDsOo5kuIxcKywFNGnMnCTCwpZlM3rYW6abfCTenuszlTb-FMPXxzikrR7zdxoGyq7mChmucpOCyfQdUdtpECgHGYKJsa3UgWPskHAVcO25RoYvIXj4rZNKjYo5CFjsMV-QH-N9nJHlOInjivRvDyCgv92-nUHYtISRZuUdTgAEVIpaiUZiF-P360ZVf4lwdWvDEpMKGXv3zHud2JA8kq8r9ada5BxPwA)**.
+
+### Set up
+
+The server runs from a clone (it isn't published to npm):
 
 ```sh
-claude mcp add d2-blocks -- node /path/to/d2-blocks/mcp/server.js   # after npm install
+git clone https://github.com/Kalter666/d2-blocks && cd d2-blocks && npm install
 ```
 
-Inside this repo Claude Code picks it up from `.mcp.json`. The link carries the
-diagram in the URL fragment (`#d2=…`, deflated), which browsers never send to a
-server; opening one replaces the current diagram, and undo brings yours back.
+- **Claude Code, inside this repo:** nothing to do; `.mcp.json` registers it.
+- **Claude Code, anywhere else:** `claude mcp add d2-blocks -- node /path/to/d2-blocks/mcp/server.js`
+- **Claude Desktop / other clients:** add to the client's MCP config:
+
+  ```json
+  { "mcpServers": { "d2-blocks": { "command": "node", "args": ["/path/to/d2-blocks/mcp/server.js"] } } }
+  ```
+
+### How it works
+
+```
+agent ──MCP (stdio)──> mcp/server.js ──> the app's own modules, under node
+                                          ├─ src/d2.js      d2 compile + render (wasm), one job at a time
+                                          ├─ src/blocks.js  the editor's parser / printer
+                                          ├─ src/mermaid.js mermaid ⇄ d2
+                                          └─ src/share.js   #d2= links
+open_in_editor ──> https://kalter666.github.io/d2-blocks/#d2=<deflated source>
+                     └─ the site decodes it in the browser and loads it as blocks
+```
+
+Nothing is reimplemented for the server, so what it renders and checks is
+exactly what the editor will do. The diagram in a link lives in the URL
+*fragment*, which browsers never send to a server — GitHub Pages only ever
+serves the static app. Opening a link replaces the current diagram; undo brings
+yours back. Links decode to at most 512 KB of d2.
+
+### Tools
+
+| Tool | Input | Returns |
+|---|---|---|
+| `render_d2` | `source`, optional `theme`, `darkTheme`, `layout` (`dagre`/`elk`), `sketch`, `board` | the SVG, or d2's error with line numbers |
+| `check_d2` | `source` | compiles?, what the editor does to it (`exact` / `reformatted` / `changed`), what stays as raw d2, shape/connection/board counts |
+| `convert` | `from` (`mermaid` or `d2`), `source` | the other language (flowcharts; best-effort) |
+| `examples` | optional `id` | the bundled gallery, or one example's d2 source |
+| `open_in_editor` | `source`, optional `base` (e.g. a local dev server) | a link that opens the diagram in this editor |
+
+### Examples
+
+Ask for a diagram, get a link. The agent writes d2, checks it, and calls
+`open_in_editor`:
+
+```d2
+direction: right
+user: User { shape: person }
+api: API { shape: hexagon }
+db: Orders { shape: cylinder }
+user -> api: places order
+api -> db: insert
+```
+
+`check_d2` on it:
+
+```json
+{ "compiles": true, "roundTrip": "reformatted", "rawBlocks": [],
+  "shapes": 3, "connections": 2, "boards": [],
+  "editorSource": "direction: right\nuser: User {shape: person}\n…" }
+```
+
+`reformatted` means the editor reprints `{ shape: person }` as
+`{shape: person}` and the diagram is unchanged. `open_in_editor` then returns
+**[this link](https://kalter666.github.io/d2-blocks/#d2=RcwxDsMgEETRnlPMBXIBikgpU9mND0BgZFayAO0SKVHku0fQuH4zP4kydqnFQ2XP3b2N6rEZFT9YDo0ejWq14HShicdjfV6U-Qn7tPTyWDRR7dL4PaQkKs7Zxe2OmWhHiDTUMR_RAeMvxajd_QE)**.
+
+Bring a mermaid flowchart over with `convert` (`from: "mermaid"`):
+
+```mermaid
+flowchart LR
+  A[Browser] --> B{Logged in?}
+  B -->|yes| C[Dashboard]
+  B -->|no| D[Login]
+```
+
+```d2
+direction: right
+A: Browser
+B: Logged in? {shape: diamond}
+C: Dashboard
+D: Login
+A -> B
+B -> C: yes
+B -> D: no
+```
+
+… and **[open it](https://kalter666.github.io/d2-blocks/#d2=JcqxDQIxDEbh3lP8C7CAC9DlUt4SAVuJC-yTcxJCiN0RUL2veGKpt8PCGWl9HLQwSsZjalJhbNG7CswveM3RdmWItXu4vGll1DbHNVoK1d9rTgtOZxQq36yMp86_K8ODPg)**.
+
+Start from the gallery: `examples` lists ids such as `three-tier`,
+`ecommerce` and `realtime-chat`; `examples { id: "three-tier" }` returns its
+source, ready to edit or **[open](https://kalter666.github.io/d2-blocks/#d2=VY9BbsMgEEX3nGIu0AuwqGTZi6YL12pSZRmNYWojOeDMTBZRxN0r7NZWV8D_A7znA5PTkKIFDsOo5kuIxcKywFNGnMnCTCwpZlM3rYW6abfCTenuszlTb-FMPXxzikrR7zdxoGyq7mChmucpOCyfQdUdtpECgHGYKJsa3UgWPskHAVcO25RoYvIXj4rZNKjYo5CFjsMV-QH-N9nJHlOInjivRvDyCgv92-nUHYtISRZuUdTgAEVIpaiUZiF-P360ZVf4lwdWvDEpMKGXv3zHud2JA8kq8r9ada5BxPwA)**.
+
+`render_d2` returns the SVG itself, for an agent that wants to save or embed it
+(`sketch: true` for the hand-drawn look). It's d2's output: a markdown label
+can carry raw HTML, so treat the SVG as untrusted if its source was.
 
 ## Develop
 

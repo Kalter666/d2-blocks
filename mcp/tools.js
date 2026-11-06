@@ -54,10 +54,19 @@ function rawBlocks(blocks, out = []) {
   return out;
 }
 
+/** What a compiled diagram *means*: every shape and connection with its kind and text. */
+const meaning = (d) => JSON.stringify([
+  (d.shapes ?? []).map((x) => [x.id, x.type, x.label]).sort(),
+  (d.connections ?? []).map((x) => [x.id, x.label, x.srcArrow, x.dstArrow]).sort(),
+]);
+
 /**
- * Does it compile, does it survive the editor byte-for-byte, and what stays as
- * plain text instead of editable blocks. The round-trip is the app's core
- * promise (CLAUDE.md); a `false` here is a bug in blocks.js worth reporting.
+ * Does it compile, what does the editor do to it, and what stays as plain text
+ * instead of editable blocks. `roundTrip` is the editor's promise (CLAUDE.md):
+ * - "exact": back byte-for-byte;
+ * - "reformatted": reprinted in the editor's canonical spacing (`{ shape: x }`
+ *   becomes `{shape: x}`), compiling to the same diagram — `editorSource` shows it;
+ * - "changed": the reprint draws something else. That is a bug in blocks.js.
  */
 export async function checkD2({ source }) {
   const src = withNewline(source);
@@ -66,21 +75,29 @@ export async function checkD2({ source }) {
   const result = {
     compiles: true,
     error: null,
-    roundTrips: reprinted === src,
+    roundTrip: 'exact',
     rawBlocks: rawBlocks(blocks),
     shapes: 0,
     connections: 0,
     boards: [],
   };
-  if (!result.roundTrips) result.editorSource = reprinted;
   try {
     const r = await draw(src, {});
     result.shapes = r.diagram.shapes?.length ?? 0;
     result.connections = r.diagram.connections?.length ?? 0;
     result.boards = r.boards.map((b) => b.path);
+    if (reprinted !== src) {
+      const again = await draw(reprinted, {}).catch(() => null);
+      result.roundTrip = again && meaning(again.diagram) === meaning(r.diagram) ? 'reformatted' : 'changed';
+      result.editorSource = reprinted;
+    }
   } catch (e) {
     result.compiles = false;
     result.error = d2Error(e);
+    if (reprinted !== src) {
+      result.roundTrip = 'reformatted'; // can't compare meaning without a compile
+      result.editorSource = reprinted;
+    }
   }
   return result;
 }

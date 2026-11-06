@@ -43,8 +43,9 @@ server.registerTool('render_d2', {
 
 server.registerTool('check_d2', {
   title: 'Check d2',
-  description: 'Whether d2 compiles; whether it round-trips byte-for-byte through the d2-blocks editor; which parts stay '
-    + 'as plain d2 text rather than editable blocks; and shape/connection/board counts.',
+  description: 'Whether d2 compiles; what the d2-blocks editor does to it (roundTrip: "exact", "reformatted" to canonical '
+    + 'spacing with the same meaning, or "changed" — a bug); which parts stay as plain d2 text rather than editable '
+    + 'blocks; and shape/connection/board counts.',
   inputSchema: { source },
 }, guard(async (args) => json(await checkD2(args))));
 
