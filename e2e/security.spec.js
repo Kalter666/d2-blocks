@@ -1,11 +1,9 @@
 // sanitize.test.js pins the attribute policy; the DOM walk that applies it needs
 // a browser, so it lives here. Replaces the old root-level xss-check.mjs, which
 // printed what d2 lets through and asserted nothing.
-import { test, expect } from '@playwright/test';
-import { open, source, drawn } from './helpers.js';
+import { test, expect, source, drawn } from './helpers.js';
 
 test('raw HTML in a pasted markdown label never runs', async ({ page }) => {
-  await open(page);
   await drawn(page, () => source(page).fill([
     'x: |md',
     '  <img src="y" onerror="window.__xss = 1" />',
@@ -20,7 +18,6 @@ test('raw HTML in a pasted markdown label never runs', async ({ page }) => {
 });
 
 test('the DOM walk strips tags, handlers and SMIL that writes a URL', async ({ page }) => {
-  await open(page);
   // Vite serves the real module, so this is the code the canvas runs.
   const out = await page.evaluate(async () => {
     const { sanitize } = await import('/d2-blocks/src/sanitize.js');

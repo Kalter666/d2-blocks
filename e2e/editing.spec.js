@@ -1,7 +1,4 @@
-import { test, expect } from '@playwright/test';
-import { open, source, addBox, control } from './helpers.js';
-
-test.beforeEach(async ({ page }) => open(page));
+import { test, expect, source, addBox, control } from './helpers.js';
 
 test('add and edit a box shows up in the d2 source', async ({ page }) => {
   const box = await addBox(page, 'api');
@@ -121,7 +118,7 @@ test('the canvas renders an svg (WASM path)', async ({ page }) => {
 // Regression: editing before the cold ~6 MB compile settled used to race the
 // single shared d2 worker and blank the canvas with a parse error. This test
 // deliberately skips open()'s idle wait and acts immediately.
-test('editing during the cold render does not corrupt the canvas', async ({ page }) => {
+test('editing during the cold render does not corrupt the canvas', async ({ cold: page }) => {
   await page.goto('/');
   await control(page, 'look').selectOption('flat');
   await page.getByRole('button', { name: '+ box' }).click();

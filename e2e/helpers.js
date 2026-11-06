@@ -1,4 +1,40 @@
-import { expect } from '@playwright/test';
+import { test as base, expect } from '@playwright/test';
+
+/**
+ * `test` for every spec: `page` is one warm page per worker, reset to a first
+ * visit before each test. A cold page spends ~6 s compiling d2's wasm, which
+ * was most of every test. Reset covers the store (diagram, settings, history),
+ * localStorage, focus and any open modal; component-local UI state (zoom,
+ * drawer height) carries over, so don't assert on its starting value.
+ *
+ * `cold` is a fresh page, not yet opened, for tests about boot itself: a reload,
+ * `?gallery`, the cold-render race. Call open(page) on it yourself.
+ */
+export const test = base.extend({
+  warm: [async ({ browser }, use, workerInfo) => {
+    const { baseURL, permissions, viewport, userAgent, deviceScaleFactor, isMobile, hasTouch } = workerInfo.project.use;
+    const context = await browser.newContext({ baseURL, permissions, viewport, userAgent, deviceScaleFactor, isMobile, hasTouch });
+    const page = await context.newPage();
+    await open(page);
+    await use(page);
+    await context.close();
+  }, { scope: 'worker' }],
+
+  page: async ({ warm }, use) => {
+    await warm.keyboard.press('Escape'); // a modal a previous test left open
+    await warm.evaluate(() => {
+      document.activeElement?.blur(); // drops a code-pane draft
+      localStorage.clear();
+      window.__d2blocks.reset();
+    });
+    await expect(warm.locator('.busy')).toHaveCount(0, { timeout: 20_000 });
+    await use(warm);
+  },
+
+  cold: async ({ context }, use) => use(await context.newPage()),
+});
+
+export { expect };
 
 /**
  * Load the app and wait until it is idle. The palette proves it booted; waiting

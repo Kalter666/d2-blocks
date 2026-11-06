@@ -137,3 +137,14 @@ export function importMermaid(text) {
   commit();
   app.blocks = fromMermaid(text);
 }
+
+/**
+ * Back to a first visit without reloading: empty diagram, default settings, no
+ * history. Only for the e2e suite (main.js exposes it in dev builds), which
+ * reuses one warm page per worker because a cold one costs ~6 s of wasm compile.
+ */
+export function reset() {
+  Object.assign(app, DEFAULTS, { blocks: empty(), board: '', hover: null, error: '' });
+  past.length = 0;
+  future.length = 0;
+}

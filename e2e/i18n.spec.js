@@ -1,9 +1,8 @@
-import { test, expect } from '@playwright/test';
-import { open, control } from './helpers.js';
+import { test, expect, open, control } from './helpers.js';
 
-test.beforeEach(async ({ page }) => open(page));
-
-test('switching language translates the UI and survives a reload', async ({ page }) => {
+// Cold: it reloads, and checks the first-visit default.
+test('switching language translates the UI and survives a reload', async ({ cold: page }) => {
+  await open(page);
   // English is the default (fresh localStorage, en navigator).
   await expect(page.getByRole('button', { name: 'Copy d2' })).toBeVisible();
 

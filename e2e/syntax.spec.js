@@ -6,8 +6,7 @@
 //   - draw what it says in d2's own SVG,
 //   - and build the 3D scene without throwing.
 // Organised like the d2 tour (d2lang.com/tour), so a gap is easy to spot.
-import { test, expect } from '@playwright/test';
-import { open, source, drawn } from './helpers.js';
+import { test, expect, source, drawn } from './helpers.js';
 
 // A 1×1 PNG, so icon cases need no network and can't fail on CORS. Quoted: the
 // `;` in a data URL would otherwise end the statement.
@@ -191,27 +190,15 @@ const CASES = {
   },
 };
 
-// One warm page per worker, reused by every case it runs. A fresh page per test
-// spent ~6 s of each one on d2's cold wasm compile and well under one on the
-// case itself; only the source changes between cases, so nothing else leaks.
-const it = test.extend({
-  warm: [async ({ browser }, use, workerInfo) => {
-    const page = await browser.newPage({ baseURL: workerInfo.project.use.baseURL });
-    await open(page);
-    await use(page);
-    await page.close();
-  }, { scope: 'worker' }],
-});
-
+// Every case runs on the worker's warm page (helpers.js `test`): only the
+// source changes between cases, and a cold page per case cost ~6 s of wasm each.
 for (const [name, { src, texts = [], boards }] of Object.entries(CASES)) {
-  it(`d2 syntax: ${name}`, async ({ warm: page }) => {
+  test(`d2 syntax: ${name}`, async ({ page }) => {
     const crashes = [];
     const onCrash = (e) => crashes.push(e.message);
     page.on('pageerror', onCrash);
 
-    // A board left selected by the previous case would hide this one's root.
     const picker = page.locator('header label:has-text("board") select');
-    if (await picker.count() && await picker.inputValue()) await picker.selectOption('');
 
     // Waiting on the render counter means *this* case was drawn — not the
     // previous one, even when both draw the same picture.

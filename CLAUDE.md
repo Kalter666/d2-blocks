@@ -100,8 +100,9 @@ block tree ──serialize()──> d2 source ──draw()──> { svg, diagram
 ## Tests
 
 - Unit tests compile with the real d2 engine where meaning matters (`compile.test.js`), not just string shape.
-- `e2e/syntax.spec.js` is a catalogue of d2 syntax: each case must compile, round-trip byte-for-byte through the editor, draw its text, and build the 3D scene without a page error. It reuses one warm page per worker (a cold page costs ~6 s of wasm compile). Headless WebGL is software-rendered and CPU-bound, so more than the default 4 workers is slower.
-- `e2e/helpers.js`: `open(page)` waits for the cold render to settle before driving the app — the single shared worker must not be raced. Assert on the `source(page)` textarea rather than the canvas where you can.
+- `e2e/syntax.spec.js` is a catalogue of d2 syntax: each case must compile, round-trip byte-for-byte through the editor, draw its text, and build the 3D scene without a page error. Headless WebGL is software-rendered and CPU-bound, so more than the default 4 workers is slower.
+- Import `test` and `expect` from `e2e/helpers.js`, not `@playwright/test`. Its `page` is one warm page per worker (a cold page costs ~6 s of wasm compile), reset before each test through the dev-only `window.__d2blocks.reset()`: store, history, localStorage, focus, open modal. Component-local UI state (zoom, drawer height) carries over. A test about boot — a reload, `?gallery`, the cold-render race — takes `{ cold: page }` and calls `open(page)` itself, which waits for the cold render so the single shared worker isn't raced.
+- Wait for a render with `drawn(page, action)`, and assert on the `source(page)` textarea rather than the canvas where you can.
 - A module's code can be exercised in a real browser from e2e via `page.evaluate(() => import('/d2-blocks/src/x.js'))` (see `security.spec.js`).
 
 ## Conventions

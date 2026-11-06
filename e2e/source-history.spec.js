@@ -1,7 +1,4 @@
-import { test, expect } from '@playwright/test';
-import { open, source, addBox, control } from './helpers.js';
-
-test.beforeEach(async ({ page }) => open(page));
+import { test, expect, source, addBox, control } from './helpers.js';
 
 test('pasted d2 becomes blocks', async ({ page }) => {
   await source(page).fill('a -> b\nc: Hi');

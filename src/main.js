@@ -1,7 +1,7 @@
 import { mount } from 'svelte';
 import './app.css';
 import App from './App.svelte';
-import { app, load } from './store.svelte.js';
+import { app, load, reset } from './store.svelte.js';
 import { applyDocumentLocale } from './i18n/index.svelte.js';
 import { SHAPES } from './blocks.js';
 import en from './i18n/en.js';
@@ -33,3 +33,7 @@ if (new URLSearchParams(location.search).has('gallery')) {
 applyDocumentLocale(); // reflect the resolved locale onto <html lang> and the tab title
 
 export default mount(App, { target: document.getElementById('app') });
+
+// Dev server only (tree-shaken from builds): e2e/helpers.js resets a warm page
+// between tests with this instead of paying for a reload.
+if (import.meta.env.DEV) window.__d2blocks = { reset };

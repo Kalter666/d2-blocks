@@ -1,7 +1,4 @@
-import { test, expect } from '@playwright/test';
-import { open, source } from './helpers.js';
-
-test.beforeEach(async ({ page }) => open(page));
+import { test, expect, source } from './helpers.js';
 
 const FLOWCHART = 'flowchart TD\n A[(DB)] --> B{Go}';
 

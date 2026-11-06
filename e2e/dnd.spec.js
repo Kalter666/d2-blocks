@@ -1,7 +1,4 @@
-import { test, expect } from '@playwright/test';
-import { open, source, addBox, addGroup, dragBlock } from './helpers.js';
-
-test.beforeEach(async ({ page }) => open(page));
+import { test, expect, source, addBox, addGroup, dragBlock } from './helpers.js';
 
 test('keyboard arrows reorder blocks', async ({ page }) => {
   await addBox(page, 'a');
