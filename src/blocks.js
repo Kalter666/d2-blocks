@@ -395,21 +395,8 @@ export function parse(src) {
   return root;
 }
 
-// `Backend: My Backend` -> ['Backend', 'My Backend']; `Backend` -> ['Backend', '']
-function splitLabel(head) {
-  const i = head.indexOf(':');
-  return i === -1 ? [head, ''] : [head.slice(0, i).trim(), head.slice(i + 1).trim()];
-}
-
 // ------------------------------------------------------------------ helpers
 
-/**
- * Fully-qualified keys of every box and group, for the dropdowns.
- * Quoted the same way serialize quotes them — a box called `a.b` is the key
- * `"a.b"`, and feeding the bare name to a link would nest instead of connect.
- * Returns the source shape too: d2 normalises some compiled types (`circle`
- * becomes `oval`), while the 3D renderer must preserve the role the user chose.
- */
 /**
  * What a connection or style can target: every box and group, plus every other
  * shape d2 actually compiled — tables, classes and anything else kept as a raw
@@ -428,6 +415,13 @@ export function targets(blocks, compiledIds = [], extra = []) {
   return out;
 }
 
+/**
+ * Fully-qualified keys of every box and group, for the dropdowns.
+ * Quoted the same way serialize quotes them — a box called `a.b` is the key
+ * `"a.b"`, and feeding the bare name to a link would nest instead of connect.
+ * Returns the source shape too: d2 normalises some compiled types (`circle`
+ * becomes `oval`), while the 3D renderer must preserve the role the user chose.
+ */
 export function keys(blocks, prefix = '', depth = 0) {
   const out = [];
   for (const b of blocks) {
@@ -489,14 +483,6 @@ export function wouldNest(block, list) {
 }
 
 /**
- * Move `block` to position `index` of `list`. Returns false if the drop is a
- * no-op or would nest a group inside itself.
- *
- * The index is measured against the list as the user sees it, i.e. with the
- * dragged block still in place. Removing it first shifts everything after it
- * down by one, so a same-list move to a later slot has to compensate.
- */
-/**
  * Does `list` already hold a box or group whose d2 key matches `name`?
  * d2 merges repeated keys into one shape, so two boxes called `auth` in the
  * same scope become one — silently, and with both sets of edges attached.
@@ -516,6 +502,14 @@ export function canMoveInto(block, list) {
   return !(named && collides(list, block.name, block));
 }
 
+/**
+ * Move `block` to position `index` of `list`. Returns false if the drop is a
+ * no-op or would nest a group inside itself.
+ *
+ * The index is measured against the list as the user sees it, i.e. with the
+ * dragged block still in place. Removing it first shifts everything after it
+ * down by one, so a same-list move to a later slot has to compensate.
+ */
 export function moveInto(blocks, block, list, index) {
   if (!canMoveInto(block, list)) return false;
   const from = parentOf(blocks, block);

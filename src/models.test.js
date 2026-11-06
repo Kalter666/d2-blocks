@@ -10,19 +10,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { SHAPES } from './blocks.js';
-import { MODELS, FAMILY, HEIGHT, familyOf, heightOf, bodyFor, outline, resolvedType } from './models.js';
+import { MODELS, FAMILY, HEIGHT, PALETTE, MOTIONS, familyOf, heightOf, bodyFor, outline, resolvedType, animateParts } from './models.js';
+import { SKIN, DARK_FAMILY } from './3d/skins.js';
+import { makePalette } from './3d/materials.js';
 
 // Materials don't affect geometry, so the palette can be stubs — which is the
-// whole point of keeping it an argument.
+// whole point of keeping it an argument. Built from PALETTE, so a model calling
+// a material the real palette doesn't have throws here, not in the browser.
 const stub = new THREE.MeshBasicMaterial();
-const M = {
-  band: () => stub, cap: () => stub, metal: () => stub, dark: () => stub,
-  gloss: () => stub, matte: () => stub, led: () => stub,
-  surface: () => stub, glass: () => stub,
-  primary: () => stub,
-  lid: () => stub, wall: () => stub,
-  rim: () => new THREE.Object3D(),
-};
+const M = Object.fromEntries(PALETTE.map((k) => [k, k === 'rim' ? () => new THREE.Object3D() : () => stub]));
 
 const measure = (body) => {
   body.updateMatrixWorld(true);
@@ -137,4 +133,40 @@ test('the source shape wins when d2 normalises a compiled type', () => {
   assert.equal(resolvedType('oval', { shape: 'circle', md: false }), 'circle');
   assert.equal(resolvedType('rectangle', { shape: 'square', md: false }), 'square');
   assert.equal(resolvedType('text', { shape: '', md: true }), 'text');
+});
+
+test('every family has a skin, a dark colour, a height and a model', () => {
+  // Five tables keyed by family name across two files. A family missing from
+  // one degraded silently: no skin fell back to 'block', no dark colour too.
+  for (const family of new Set(Object.values(FAMILY))) {
+    assert.ok(SKIN[family], `${family} has no SKIN in 3d/skins.js`);
+    assert.ok(DARK_FAMILY[family], `${family} has no DARK_FAMILY colour`);
+    assert.ok(HEIGHT[family], `${family} has no HEIGHT`);
+  }
+  // 'pad' is the container platform; everything else must be reachable.
+  for (const family of [...Object.keys(SKIN), ...Object.keys(DARK_FAMILY), ...Object.keys(MODELS)]) {
+    assert.ok(family === 'pad' || Object.values(FAMILY).includes(family), `${family} is unreachable`);
+  }
+});
+
+test('the real palette is exactly PALETTE', () => {
+  const color = new THREE.Color();
+  const real = makePalette(
+    { family: 'block', spec: SKIN.block, shellColor: color, accentColor: color, glow: 1, darkScene: false, container: false },
+    { tex: () => null, worldTex: () => null },
+  );
+  assert.deepEqual(Object.keys(real).sort(), [...PALETTE].sort());
+});
+
+test('every motion a model uses is one the animator knows', () => {
+  // moves() throws on an unknown kind, so building every body proves the
+  // vocabulary; stepping the animator proves it moves something.
+  const seen = new Set();
+  for (const type of types) {
+    const body = bodyFor({ type, width: 100, height: 80 }, M);
+    body.traverse((n) => n.userData.motion && seen.add(n.userData.motion));
+    assert.doesNotThrow(() => animateParts(body, 0.37), type || 'default');
+  }
+  for (const kind of seen) assert.ok(MOTIONS.has(kind), kind);
+  assert.deepEqual([...MOTIONS].filter((k) => !seen.has(k)), [], 'a motion no model uses');
 });

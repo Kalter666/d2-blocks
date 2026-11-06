@@ -88,7 +88,7 @@ export const HEIGHT = {
   state: [0.62, 20, 70], person: [1.0, 34, 110], cloud: [0.62, 24, 80],
   startstop: [0.54, 22, 68], file: [0.32, 16, 48],
   decision: [0.75, 26, 90], gateway: [0.6, 24, 80], package: [0.6, 22, 76],
-  block: [0.5, 24, 72], paper: [0.3, 16, 46],
+  block: [0.5, 24, 72],
   io: [0.82, 34, 92],
   process: [0.58, 24, 70],
   screen: [0.78, 32, 88], note: [0.66, 28, 78], component: [0.38, 18, 52],
@@ -97,9 +97,6 @@ export const HEIGHT = {
 // ------------------------------------------------------------------ models
 
 const RB = (w, h, d, r) => new RoundedBoxGeometry(w, h, d, 3, Math.min(r, w / 2, h / 2, d / 2));
-
-/** Darken a hex toward black — trim, recesses, the gaps between drives. */
-const shade = (hex, k) => new THREE.Color(hex).multiplyScalar(k);
 
 /**
  * Seat a part on the wall of a round body and turn it to face outward.
@@ -114,8 +111,27 @@ function onCurve(part, rx, rz, angle, y, k = 0.97) {
   return part;
 }
 
-/** Mark a part for Scene.svelte's lightweight, reduced-motion-aware animator. */
+/**
+ * The materials a model may ask its palette `M` for. src/3d/materials.js builds
+ * the real one and models.test.js a stub from this same list, so a model that
+ * calls something missing fails in `npm test` instead of in the browser.
+ */
+export const PALETTE = ['band', 'cap', 'metal', 'dark', 'matte', 'surface', 'primary', 'glass', 'led', 'lid', 'wall', 'rim'];
+
+/** Every material a mesh holds; `material` may be one, an array, or absent. */
+export const materialsOf = (n) => (Array.isArray(n.material) ? n.material : n.material ? [n.material] : []);
+
+/**
+ * The motions animateParts() knows. Options per part: `speed` (cycles/s),
+ * `phase` (radians), `amount` (scale/angle/depth), `span` (world units).
+ */
+export const MOTIONS = new Set(['blink', 'shimmer', 'pulse', 'travel-x', 'flow-x', 'spin-x',
+  'sway-z', 'flutter-z', 'flutter-x', 'press', 'drift']);
+
+/** Mark a part for the lightweight, reduced-motion-aware animator below. */
 function moves(part, kind, options = {}) {
+  // A typo here used to do nothing at all: the animator just skipped the part.
+  if (!MOTIONS.has(kind)) throw new Error(`unknown motion ${kind}`);
   Object.assign(part.userData, { motion: kind, ...options });
   return part;
 }
@@ -125,8 +141,9 @@ function moves(part, kind, options = {}) {
  * with its base on y = 0, sized to the footprint d2 laid out (w × h) so the
  * diagram still reads the way the flat one does.
  *
- * Anything not here falls back to its outline extruded straight up, which is
- * the honest answer for a document or a callout.
+ * Anything not here falls back to its outline extruded straight up. Every
+ * selectable shape has a model now, so that means containers and shapes d2
+ * adds later.
  */
 export const MODELS = {
   // A small server cabinet. The cylinder-stack database icon is familiar in 2D
@@ -688,35 +705,6 @@ export const MODELS = {
     return g;
   },
 
-  // Sheets in a tray, each keeping the outline d2 chose — so a document still
-  // reads differently from a page or a callout, but none of them is a slab.
-  paper(w, h, H, M, type) {
-    const g = new THREE.Group();
-    const tray = new THREE.Mesh(RB(w, H * 0.22, h, 3), M.surface(0x59616a, 0.72, 0.34));
-    tray.position.y = H * 0.11;
-    g.add(tray);
-
-    const sheetH = Math.max(1.2, H * 0.16);
-    for (let i = 0; i < 3; i++) {
-      const k = 0.94 - i * 0.03;
-      const sheet = new THREE.Mesh(new THREE.ExtrudeGeometry(outline(type, w * k, h * k), {
-        depth: sheetH, bevelEnabled: true, bevelThickness: 0.8, bevelSize: 0.8,
-        bevelSegments: 1, curveSegments: 24,
-      }), [M.surface(0xf6f2e8, 0, 0.88), M.surface(0xd8d1c4, 0, 0.94)]);
-      sheet.rotation.x = -Math.PI / 2;
-
-      // Yaw goes on a wrapper: the mesh itself is already turned flat, so its
-      // own y is the outline's depth axis.
-      const pivot = new THREE.Group();
-      pivot.add(sheet);
-      pivot.rotation.y = (i - 1) * 0.05;
-      pivot.position.y = H * 0.22 + i * sheetH * 1.35;
-      if (i === 2) moves(pivot, 'flutter-z', { phase: 0.6, amount: 0.018, speed: 1.2 });
-      g.add(pivot);
-    }
-    return g;
-  },
-
   // A physical file folder, distinct from a loose page or note. The warm folder
   // shell, raised tab and exposed white sheets do most of the recognition work.
   file(w, h, H, M) {
@@ -959,7 +947,7 @@ export function heightOf(type, w, h, container = false) {
 /**
  * The body for one shape, base sitting on y = 0 and sized to its footprint.
  * Families without a bespoke form fall back to their outline extruded straight
- * up, which is the honest answer for a document, a callout or a container.
+ * up: containers, and any shape d2 adds that FAMILY doesn't map yet.
  *
  * `M` is the material palette the caller supplies — see Scene.svelte. Keeping it
  * an argument is what lets a test build these bodies with stubs and no GPU.
@@ -967,7 +955,7 @@ export function heightOf(type, w, h, container = false) {
 export function bodyFor({ type, width, height, container = false }, M) {
   const depth = heightOf(type, width, height, container);
   const model = !container && MODELS[familyOf(type)];
-  if (model) return seat(model(width, height, depth, M, type), width, height, depth);
+  if (model) return seat(model(width, height, depth, M), width, height, depth);
 
   // The bevel grows the outline outward, so take it off first — otherwise every
   // extruded shape is 2·bevel wider than the box d2 reserved for it.
@@ -1017,4 +1005,48 @@ function seat(g, w, h, depth) {
   g.position.z -= mid.z;
   g.position.y -= fitted.min.y;
   return g;
+}
+
+/** Step every part marked with moves() to `time` seconds. Scene.svelte drives it. */
+export function animateParts(model, time) {
+  model.traverse((n) => {
+    const u = n.userData;
+    if (!u?.motion) return;
+    const rest = (u.rest ??= {
+      x: n.position.x, y: n.position.y,
+      rx: n.rotation.x, ry: n.rotation.y, rz: n.rotation.z,
+      sx: n.scale.x, sy: n.scale.y, sz: n.scale.z,
+    });
+    const speed = u.speed ?? 1;
+    const wave = Math.sin(time * speed * Math.PI * 2 + (u.phase ?? 0));
+
+    if (u.motion === 'blink' || u.motion === 'shimmer') {
+      const strength = u.motion === 'blink' ? 0.32 + (wave + 1) * 0.34 : 0.1 + (wave + 1) * 0.08;
+      for (const m of materialsOf(n)) {
+        m.userData.restOpacity ??= m.opacity;
+        m.transparent = true;
+        m.opacity = m.userData.restOpacity * strength;
+        m.needsUpdate = true;
+      }
+    } else if (u.motion === 'pulse') {
+      const k = 1 + wave * (u.amount ?? 0.02);
+      n.scale.set(rest.sx * k, rest.sy * k, rest.sz * k);
+    } else if (u.motion === 'travel-x') {
+      n.position.x = rest.x + wave * (u.span ?? 10);
+    } else if (u.motion === 'flow-x') {
+      const progress = ((time * speed + (u.phase ?? 0)) % 1 + 1) % 1;
+      n.position.x = rest.x + (progress * 2 - 1) * (u.span ?? 10);
+    } else if (u.motion === 'spin-x') {
+      n.rotation.x = rest.rx + time * speed;
+    } else if (u.motion === 'sway-z' || u.motion === 'flutter-z') {
+      n.rotation.z = rest.rz + wave * (u.amount ?? 0.02);
+    } else if (u.motion === 'flutter-x') {
+      n.rotation.x = rest.rx + wave * (u.amount ?? 0.02);
+    } else if (u.motion === 'press') {
+      n.position.y = rest.y - Math.max(0, wave) * (u.amount ?? 1.5);
+    } else if (u.motion === 'drift') {
+      n.position.x = rest.x + wave * (u.span ?? 2);
+      n.position.y = rest.y + Math.cos(time * speed * Math.PI * 2 + (u.phase ?? 0)) * (u.amount ?? 1);
+    }
+  });
 }
