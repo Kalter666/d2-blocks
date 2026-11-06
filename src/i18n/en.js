@@ -74,7 +74,7 @@ export default {
     // block editor — verbs and slots
     'block.verb.box': 'box',
     'block.verb.group': 'group',
-    'block.verb.connect': 'connect',
+    'block.verb.link': 'connect',
     'block.verb.style': 'style',
     'block.verb.direction': 'lay out',
     'block.verb.raw': 'd2',

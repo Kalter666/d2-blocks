@@ -13,7 +13,10 @@ import { boardAt, boardPaths } from './boards.js';
 // (architecture.test.js enforces this).
 let d2 = new D2();
 
-const PATIENCE = 8000; // generous: a cold first compile loads ~6 MB of wasm
+// Generous: a cold first compile loads ~6 MB of wasm, ~6 s on a slow machine.
+// Too low and a live-but-slow worker is replaced, which forces another cold
+// start, which times out again. e2e/helpers.js waits 20 s, which must stay above.
+const PATIENCE = 8000;
 
 /** Turn "never settles" into a real rejection, and replace the dead worker. */
 function watch(work) {
@@ -22,7 +25,11 @@ function watch(work) {
     work.finally(() => clearTimeout(timer)),
     new Promise((_, reject) => {
       timer = setTimeout(() => {
-        d2 = new D2(); // the old one is gone; the next attempt gets a live worker
+        // The next attempt gets a live worker. The old one is stopped, not just
+        // dropped: a Go loop that never yields would otherwise keep a core busy.
+        const dead = d2;
+        d2 = new D2();
+        dead.worker?.terminate?.();
         reject(new Error('The d2 engine stopped responding, so it was restarted. If this keeps happening, the last edit is crashing it — undo it, or clear the saved diagram.'));
       }, PATIENCE);
     }),

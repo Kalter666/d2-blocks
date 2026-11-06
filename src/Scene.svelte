@@ -16,6 +16,7 @@
   import { unsafeAttr } from './sanitize.js';
   import { app } from './store.svelte.js';
   import { keys } from './blocks.js';
+  import { linkTarget } from './boards.js';
   import { t } from './i18n/index.svelte.js';
   import { familyOf, heightOf, bodyFor, resolvedType, animateParts, materialsOf } from './models.js';
   import { SKIN, DARK_FAMILY, createSkins } from './3d/skins.js';
@@ -337,9 +338,9 @@
 
     /** A d2 link is either another board of this file or a web address. */
     function follow(link) {
-      const board = link.replace(/^root\.?/, '');
-      if (board === '' || app.boards.some((b) => b.path === board)) app.board = board;
-      else if (!unsafeAttr('href', link)) window.open(link, '_blank', 'noopener');
+      const { board, url } = linkTarget(link, app.boards);
+      if (board != null) app.board = board;
+      else if (!unsafeAttr('href', url)) window.open(url, '_blank', 'noopener');
     }
 
     // OrbitControls also consumes pointer gestures. Only a stationary press is

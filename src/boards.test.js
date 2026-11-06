@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { boardPaths, boardAt } from './boards.js';
+import { boardPaths, boardAt, linkTarget } from './boards.js';
 
 const root = {
   name: '',
@@ -19,4 +19,13 @@ test('a path resolves to its board, and a stale one to null', () => {
   assert.equal(boardAt(root, ''), root);
   assert.equal(boardAt(root, 'layers.api.steps.2').name, '2');
   assert.equal(boardAt(root, 'layers.gone'), null);
+});
+
+test('a link names a board of this file, or else a web address', () => {
+  const boards = [{ path: 'layers.api' }, { path: 'layers.api.steps.1' }];
+  assert.deepEqual(linkTarget('root', boards), { board: '' });
+  assert.deepEqual(linkTarget('root.layers.api', boards), { board: 'layers.api' });
+  assert.deepEqual(linkTarget('layers.api.steps.1', boards), { board: 'layers.api.steps.1' });
+  assert.deepEqual(linkTarget('layers.gone', boards), { url: 'layers.gone' });
+  assert.deepEqual(linkTarget('https://d2lang.com', boards), { url: 'https://d2lang.com' });
 });

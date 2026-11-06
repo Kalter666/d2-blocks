@@ -87,7 +87,7 @@
     onpointermove={onPointerMove}
     onpointerleave={() => (app.hover = null)}
   >
-    <div class="paper" bind:this={host} style="zoom: {zoom}">
+    <div class="paper" bind:this={host} style="zoom: {zoom}" data-render={app.renders}>
       {@html app.svg}
     </div>
   </div>

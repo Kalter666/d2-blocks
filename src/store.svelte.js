@@ -1,15 +1,13 @@
 import { empty, serialize, parse, removeBlock, moveInto, reorderIn } from './blocks.js';
 import { toMermaid, fromMermaid } from './mermaid.js';
+import { DEFAULTS, toSave, fromSave } from './settings.js';
+import { record, step as stepIn } from './history.js';
 
 export const app = $state({
   blocks: empty(),
-  layout: 'dagre',
-  theme: 0,
-  darkTheme: 200,
-  appearance: 'system', // 'system' | 'light' | 'dark'
-  locale: 'en',  // 'en' | 'ru' — see src/i18n; main.js resolves the initial value
-  sketch: false,
-  look: '3d',    // '3d' | 'flat' — see Canvas.svelte and Scene.svelte
+  // layout, theme, darkTheme, appearance, locale, sketch, look — the persisted
+  // settings; their values and allowed ranges live in settings.js.
+  ...DEFAULTS,
   hover: null,   // d2 id of the shape/connection under the pointer, either side
   dragging: null,
   svg: '',
@@ -18,6 +16,7 @@ export const app = $state({
   boards: [],    // every layer/scenario/step in the source — see boards.js
   error: '',
   busy: true,
+  renders: 0,    // finished draws, success or error; e2e waits on it (helpers.js drawn())
 });
 
 export const source = () => serialize(app.blocks) + '\n';
@@ -30,34 +29,24 @@ const past = $state([]);
 const future = $state([]);
 
 const snapshot = () => structuredClone($state.snapshot(app.blocks));
-const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
-/** Call before any mutation. ponytail: whole-tree snapshots, fine at this size. */
+/**
+ * Call before any mutation, or it can't be undone. Block fields call it on
+ * focus, the code pane on focus, and every function below that changes
+ * app.blocks either calls it or goes through edit().
+ */
 export function commit() {
-  past.push(snapshot());
-  if (past.length > 100) past.shift();
-  future.length = 0;
+  record(past, future, snapshot());
 }
 
 export const canUndo = () => past.length > 0;
 export const canRedo = () => future.length > 0;
 
-/**
- * commit() fires on every field focus, so tabbing through inputs without typing
- * stacks up identical states. Rather than trying to detect "did this focus lead
- * to a change", step over entries that match where we already are — otherwise
- * the first press of undo visibly does nothing.
- */
 function step(from, to) {
-  const current = snapshot();
-  while (from.length) {
-    const state = from.pop();
-    if (same(state, current)) continue;
-    to.push(current);
-    app.blocks = $state.snapshot(state); // unwrap: it came out of a $state array
-    return true;
-  }
-  return false;
+  const state = stepIn(from, to, snapshot());
+  if (state == null) return false;
+  app.blocks = $state.snapshot(state); // unwrap: it came out of a $state array
+  return true;
 }
 
 export const undo = () => step(past, future);
@@ -69,9 +58,7 @@ export const redo = () => step(future, past);
 const edit = (fn) => (...args) => {
   const before = snapshot();
   if (fn(app.blocks, ...args) === false) return false;
-  past.push(before);
-  if (past.length > 100) past.shift();
-  future.length = 0;
+  record(past, future, before);
   return true;
 };
 
@@ -106,31 +93,27 @@ export function add(block) {
 // -------------------------------------------------------------- persistence
 
 const KEY = 'd2-blocks';
-let loaded = false; // until load() settles, autosave would overwrite the save
+// Until load() settles, autosave would overwrite the save. ?gallery never calls
+// load() (main.js), so it never saves either — that is how it can't clobber yours.
+let loaded = false;
 
-export function save() {
-  if (!loaded) return;
-  localStorage.setItem(KEY, JSON.stringify({
-    src: source(), layout: app.layout, theme: app.theme, darkTheme: app.darkTheme,
-    appearance: app.appearance, locale: app.locale, sketch: app.sketch, look: app.look,
-  }));
+/** The save as it would be written now, or null before load(). Reading it subscribes to everything saved. */
+export const saving = () => (loaded ? toSave(source(), app) : null);
+
+export function save(data = saving()) {
+  if (data != null) localStorage.setItem(KEY, data);
 }
 
 export function load() {
   try {
-    const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null');
+    const saved = fromSave(localStorage.getItem(KEY));
     if (!saved) return;
     app.blocks = parse(saved.src);
-    app.layout = saved.layout ?? app.layout;
-    app.theme = saved.theme ?? app.theme;
-    app.darkTheme = saved.darkTheme ?? app.darkTheme;
-    app.appearance = saved.appearance ?? app.appearance;
-    app.locale = saved.locale ?? app.locale;
-    app.sketch = saved.sketch ?? app.sketch;
-    app.look = saved.look ?? app.look;
+    Object.assign(app, saved.settings);
   } catch {
-    // Corrupt save, or one a parse bug can't read. Start fresh, but keep the
-    // bytes: the first autosave would otherwise overwrite the only copy.
+    // Corrupt, from a newer version, or one a parse bug can't read. Start
+    // fresh, but keep the bytes: the first autosave would otherwise overwrite
+    // the only copy.
     try { localStorage.setItem(KEY + '.bak', localStorage.getItem(KEY)); } catch { /* full or blocked */ }
   } finally {
     loaded = true;

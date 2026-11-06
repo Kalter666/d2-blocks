@@ -3,7 +3,7 @@
 // renderer only draws the root unless it is given a `target` path like
 // `layers.api.steps.2`. Pure helpers, no worker, so a test can import them.
 
-const KINDS = ['layers', 'scenarios', 'steps'];
+export const KINDS = ['layers', 'scenarios', 'steps'];
 
 /** Every board below the root as `{ path, label }`, depth-first, in source order. */
 export function boardPaths(diagram, prefix = '', label = '') {
@@ -29,4 +29,13 @@ export function boardAt(diagram, path) {
     d = d[parts[i]]?.find((b) => b?.name === parts[i + 1]) ?? null;
   }
   return d;
+}
+
+/**
+ * Where a d2 `link` goes: another board of this file (`root.layers.x`, `layers.x`,
+ * or `root` itself), else a web address. `boards` is boardPaths() output.
+ */
+export function linkTarget(link, boards) {
+  const board = link.replace(/^root\.?/, '');
+  return board === '' || boards.some((b) => b.path === board) ? { board } : { url: link };
 }

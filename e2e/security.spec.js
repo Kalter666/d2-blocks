@@ -2,19 +2,16 @@
 // a browser, so it lives here. Replaces the old root-level xss-check.mjs, which
 // printed what d2 lets through and asserted nothing.
 import { test, expect } from '@playwright/test';
-import { open, source } from './helpers.js';
+import { open, source, drawn } from './helpers.js';
 
 test('raw HTML in a pasted markdown label never runs', async ({ page }) => {
   await open(page);
-  const busy = page.locator('.busy');
-  await source(page).fill([
+  await drawn(page, () => source(page).fill([
     'x: |md',
     '  <img src="y" onerror="window.__xss = 1" />',
     '  <a href="javascript:window.__xss = 2">go</a>',
     '|',
-  ].join('\n'));
-  await expect(busy).toHaveCount(1);
-  await expect(busy).toHaveCount(0, { timeout: 20_000 });
+  ].join('\n')));
 
   const html = await page.locator('.paper').innerHTML();
   expect(html).not.toContain('onerror');

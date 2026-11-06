@@ -3,6 +3,7 @@
   import { fromMermaid } from './mermaid.js';
   import { importMermaid } from './store.svelte.js';
   import { draw } from './d2.js';
+  import { PREVIEW } from './settings.js';
   import { t } from './i18n/index.svelte.js';
 
   let { open = $bindable(false), onimport } = $props();
@@ -33,7 +34,7 @@
       error = String(e?.message ?? e);
       return;
     }
-    draw(d2, { layout: 'dagre', themeID: 0, darkThemeID: 200, sketch: false })
+    draw(d2, PREVIEW)
       .then(({ svg }) => { if (mine === previewToken) preview = svg; })
       .catch((e) => { if (mine === previewToken) error = String(e?.message ?? e); });
   });

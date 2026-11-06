@@ -73,7 +73,7 @@ export default {
     // редактор блоков — глаголы и поля
     'block.verb.box': 'блок',
     'block.verb.group': 'группа',
-    'block.verb.connect': 'связать',
+    'block.verb.link': 'связать',
     'block.verb.style': 'стиль',
     'block.verb.direction': 'разложить',
     'block.verb.raw': 'd2',

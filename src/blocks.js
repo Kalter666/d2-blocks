@@ -8,36 +8,27 @@
 //   3. lines parse didn't understand survive byte-for-byte  (always)
 
 export const ARROWS = ['->', '<-', '--', '<->'];
+// Every regex that spots a connection is built from ARROWS, so a new arrow is
+// one entry. None of these characters is special in a regex outside a class.
+const ARROW = `(${ARROWS.join('|')})`;
+
+/** Boxes and groups have a name d2 keys them by; the other blocks don't. */
+export const isNamed = (b) => b.type === 'box' || b.type === 'group';
 
 /**
- * d2's shapes, labelled by what people actually draw with them — nobody picks
+ * d2's shapes, in dropdown order: common roles first, geometry-for-its-own-sake
+ * last. The words people see are i18n keys `shape.<value>` (`shape.default` for
+ * ''), labelled by what people actually draw with them — nobody picks
  * `stored_data` on purpose, they're looking for a disk. The value is still d2's
- * name, so the source pane and every round-trip are unaffected; only the word in
- * the dropdown changes. Common roles first, geometry-for-its-own-sake last.
+ * name, so the source pane and every round-trip are unaffected.
  *
  * All 18 stay listed even where the role is thin (square, circle): dropping one
- * would leave the select blank for a pasted file that uses it.
+ * would leave the select blank for a pasted file that uses it. Each needs a
+ * FAMILY in models.js and a `shape.*` key in every locale (both tested).
  */
-export const SHAPES = [
-  ['', 'Box (default)'],
-  ['rectangle', 'Service'],
-  ['cylinder', 'Database'],
-  ['queue', 'Queue / stream'],
-  ['stored_data', 'Storage / volume'],
-  ['person', 'User / actor'],
-  ['cloud', 'Cloud / external'],
-  ['package', 'Package / module'],
-  ['hexagon', 'Gateway / hub'],
-  ['diamond', 'Decision'],
-  ['step', 'Process step'],
-  ['oval', 'Start / end'],
-  ['circle', 'State'],
-  ['document', 'Document / file'],
-  ['page', 'Page / screen'],
-  ['parallelogram', 'Input / output'],
-  ['callout', 'Note / callout'],
-  ['square', 'Component (square)'],
-];
+export const SHAPES = ['', 'rectangle', 'cylinder', 'queue', 'stored_data', 'person', 'cloud',
+  'package', 'hexagon', 'diamond', 'step', 'oval', 'circle', 'document', 'page', 'parallelogram',
+  'callout', 'square'];
 /**
  * Every style property d2 accepts, with the editor it needs and a default that
  * actually validates. Ranges are d2's own (`d2graph.go`), not guesses — feeding
@@ -71,7 +62,34 @@ export const STYLE_PROPS = {
 export const defaultStyle = (prop) => STYLE_PROPS[prop]?.value ?? '';
 export const DIRECTIONS = ['up', 'down', 'right', 'left'];
 
+/** Every block kind. A new one needs serialize/parse support, Block.svelte UI, and `block.verb.<type>` in each locale. */
+export const BLOCK_TYPES = ['direction', 'box', 'group', 'link', 'style', 'raw'];
+
 export const empty = () => [{ type: 'direction', value: 'right' }];
+
+/** d2 merges same-named siblings, so a new block needs a name nobody is using. */
+export function freeName(base, taken) {
+  if (!taken.has(base)) return base;
+  for (let i = 2; ; i++) if (!taken.has(`${base} ${i}`)) return `${base} ${i}`;
+}
+
+/**
+ * A fresh block of `type` for the palette. `options` is keys(tree): new boxes
+ * and groups get a free name, links and styles start on the first targets.
+ */
+export function newBlock(type, options) {
+  const name = (base) => freeName(base, new Set(options.map((o) => o.name)));
+  switch (type) {
+    case 'box': return { type: 'box', name: name('box'), label: '', shape: '' };
+    case 'group': return { type: 'group', name: name('group'), label: '', children: [] };
+    case 'link': return {
+      type: 'link', arrow: '->', label: '',
+      src: options[0]?.key ?? '', dst: options[1]?.key ?? options[0]?.key ?? '',
+    };
+    case 'style': return { type: 'style', target: options[0]?.key ?? '', prop: 'fill', value: defaultStyle('fill') };
+    default: throw new Error(`newBlock: unknown block type ${type}`);
+  }
+}
 
 // ---------------------------------------------------------------- serialize
 
@@ -162,7 +180,9 @@ function line(b, scope) {
     case 'style':
       return `${relativize(b.target, scope)}.style.${b.prop}: ${qLabel(b.value)}`;
     default:
-      return '';
+      // An empty line here silently broke the lossless round-trip. A new block
+      // type needs a case here, one in parse(), and the checklist in CLAUDE.md.
+      throw new Error(`serialize: unknown block type ${b.type}`);
   }
 }
 
@@ -216,7 +236,7 @@ const RE = {
   quoted: /^("(?:[^"\\]|\\.)*"|'[^']*')$/,
   group: /^(.+?):\s*(.*?)\s*\{$/,
   boxShape: /^(.+?):\s*(?:(.*?)\s+)?\{\s*shape:\s*(\w+)\s*\}$/,
-  link: /^(.+?)\s+(->|<-|--|<->)\s+(.+?)(?::\s*(.*))?$/,
+  link: new RegExp(`^(.+?)\\s+${ARROW}\\s+(.+?)(?::\\s*(.*))?$`),
   style: /^(.+)\.style\.([\w-]+):\s*(.*)$/,
   direction: /^direction:\s*(up|down|left|right)$/,
   labelled: /^([^:{}]+?):\s*([^{}]*)$/,
@@ -306,11 +326,18 @@ function parseLine(text, scope) {
   return null;
 }
 
+/** Net `{` minus `}` on a line. Blind to braces inside quotes (see closing). */
+const braceDelta = (line) => {
+  let d = 0;
+  for (const ch of line) d += ch === '{' ? 1 : ch === '}' ? -1 : 0;
+  return d;
+};
+
 /** The line that closes the map opened at `lines[i]`. ponytail: counts braces, blind to ones in quotes. */
 function closing(lines, i) {
   let depth = 0;
   for (let j = i; j < lines.length; j++) {
-    for (const ch of lines[j]) depth += ch === '{' ? 1 : ch === '}' ? -1 : 0;
+    depth += braceDelta(lines[j]);
     if (depth === 0) return j;
   }
   return null;
@@ -321,7 +348,7 @@ function isRecord(lines, i) {
   let depth = 0;
   for (let j = i + 1; j < lines.length && depth >= 0; j++) {
     if (depth === 0 && /^\s*shape:\s*(sql_table|class)\s*$/.test(lines[j])) return true;
-    for (const ch of lines[j]) depth += ch === '{' ? 1 : ch === '}' ? -1 : 0;
+    depth += braceDelta(lines[j]);
   }
   return false;
 }
@@ -367,7 +394,7 @@ export function parse(src) {
     // A connection with a map body (arrowheads, per-link styles), classes, vars,
     // boards, tables and UML classes aren't something we emit, so the whole body goes to one raw block — line by line it would be
     // read as a label of "{" and a run of stray boxes.
-    if (g && (/(->|<-|--|<->)/.test(g[1]) || RE.defs.test(t) || RE.keyword.test(t) || opaque(g[1]) || isRecord(lines, i))) {
+    if (g && (new RegExp(ARROW).test(g[1]) || RE.defs.test(t) || RE.keyword.test(t) || opaque(g[1]) || isRecord(lines, i))) {
       const end = closing(lines, i);
       if (end != null) {
         top().push({ type: 'raw', text: lines.slice(i, end + 1).join('\n') });
@@ -375,7 +402,7 @@ export function parse(src) {
         continue;
       }
     }
-    if (g && !/(->|<-|--|<->)/.test(g[1])) {
+    if (g && !new RegExp(ARROW).test(g[1])) {
       const md = takeMdMap(lines, i, g);
       if (md) { top().push(md.block); i = md.next - 1; continue; }
 
@@ -492,13 +519,13 @@ export function wouldNest(block, list) {
  */
 export function collides(list, name, ignore) {
   const key = q(name);
-  return list.some((b) => b !== ignore && (b.type === 'box' || b.type === 'group') && q(b.name) === key);
+  return list.some((b) => b !== ignore && isNamed(b) && q(b.name) === key);
 }
 
 /** Can `block` be dropped into `list` at all? Same checks moveInto enforces. */
 export function canMoveInto(block, list) {
   if (wouldNest(block, list)) return false;
-  const named = block.type === 'box' || block.type === 'group';
+  const named = isNamed(block);
   return !(named && collides(list, block.name, block));
 }
 

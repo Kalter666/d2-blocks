@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   moveInto, reorderIn, parentOf, wouldNest, keys, renameKey, serialize, collides, canMoveInto,
+  newBlock, freeName, BLOCK_TYPES,
 } from './blocks.js';
 
 const box = (name) => ({ type: 'box', name, label: '', shape: '' });
@@ -180,3 +181,28 @@ test('renaming to the same key is a no-op', () => {
 });
 
 
+
+test('new blocks get a name nobody is using', () => {
+  assert.equal(freeName('box', new Set()), 'box');
+  assert.equal(freeName('box', new Set(['box', 'box 2'])), 'box 3');
+  const options = [{ key: 'box', name: 'box' }, { key: 'db', name: 'db' }];
+  assert.equal(newBlock('box', options).name, 'box 2');
+  assert.deepEqual([newBlock('link', options).src, newBlock('link', options).dst], ['box', 'db']);
+  assert.equal(newBlock('style', options).target, 'box');
+});
+
+test('every block type serializes, and an unknown one is loud', () => {
+  // line() used to return '' for a type it didn't know, quietly breaking the
+  // round-trip instead of failing.
+  const sample = {
+    direction: { type: 'direction', value: 'down' },
+    box: { type: 'box', name: 'a', label: '', shape: '' },
+    group: { type: 'group', name: 'g', label: '', children: [] },
+    link: { type: 'link', src: 'a', dst: 'b', arrow: '->', label: '' },
+    style: { type: 'style', target: 'a', prop: 'fill', value: '"#fff"' },
+    raw: { type: 'raw', text: 'x.y: 1' },
+  };
+  assert.deepEqual(Object.keys(sample).sort(), [...BLOCK_TYPES].sort());
+  for (const b of Object.values(sample)) assert.ok(serialize([b]).trim(), b.type);
+  assert.throws(() => serialize([{ type: 'nope' }]), /unknown block type/);
+});

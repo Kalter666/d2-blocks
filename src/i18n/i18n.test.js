@@ -6,6 +6,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import en from './en.js';
 import ru from './ru.js';
+import { SHAPES, BLOCK_TYPES } from '../blocks.js';
+import { KINDS } from '../boards.js';
+import { THEMES, DARK_THEMES, LOCALES as SETTINGS_LOCALES } from '../settings.js';
+import { EXAMPLE_CATEGORIES } from '../examples/catalog.js';
 
 const LOCALES = { en, ru };
 
@@ -46,4 +50,23 @@ test('plural picks the right form per locale', () => {
   // English: 1 -> one, everything else -> other.
   assert.equal(plural(en, 'en', 'examples.count', 1), '1 example');
   assert.equal(plural(en, 'en', 'examples.count', 3), '3 examples');
+});
+
+// t() falls back to the raw key, so a key the code builds at runtime that no
+// dictionary defines shows up as `block.verb.link` on screen with no error —
+// which is exactly what a link block's move handle announced until this test.
+
+test('every key the code builds at runtime exists', () => {
+  const built = [
+    ...SHAPES.map((v) => `shape.${v || 'default'}`),
+    ...BLOCK_TYPES.map((v) => `block.verb.${v}`),
+    ...KINDS.map((v) => `board.${v}`),
+    ...[...THEMES, ...DARK_THEMES].map((v) => `theme.${v}`),
+  ];
+  for (const key of built) assert.ok(en.ui[key], `en.ui has no ${key}`);
+  for (const c of EXAMPLE_CATEGORIES) assert.ok(en.categories[c], `en.categories has no ${c}`);
+});
+
+test('every selectable locale has a dictionary', () => {
+  assert.deepEqual(Object.keys(SETTINGS_LOCALES).sort(), Object.keys(LOCALES).sort());
 });

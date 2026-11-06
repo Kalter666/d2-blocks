@@ -1,5 +1,6 @@
 <script>
   import { draw } from './d2.js';
+  import { PREVIEW } from './settings.js';
   import { EXAMPLES, EXAMPLE_CATEGORIES } from './examples.js';
   import { t, plural, category as categoryLabel, example as exampleText } from './i18n/index.svelte.js';
 
@@ -27,7 +28,7 @@
     const mine = ++previewToken;
     preview = '';
     previewError = '';
-    draw(selected.source, { layout: 'dagre', themeID: 0, darkThemeID: 200, sketch: false })
+    draw(selected.source, PREVIEW)
       .then(({ svg }) => {
         if (mine === previewToken) preview = svg;
       })

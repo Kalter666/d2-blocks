@@ -25,7 +25,7 @@ const measure = (body) => {
   return new THREE.Box3().setFromObject(body);
 };
 
-const types = SHAPES.map(([value]) => value);
+const types = SHAPES;
 
 test('every d2 shape builds a body', () => {
   for (const type of types) {

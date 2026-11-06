@@ -2,9 +2,7 @@ import { app, save } from '../store.svelte.js';
 import en from './en.js';
 import ru from './ru.js';
 
-// Language name shown in the switcher — in its own language, so it reads to the
-// person who speaks it whatever the current UI locale is.
-export const LOCALES = { en: 'English', ru: 'Русский' };
+export { LOCALES } from '../settings.js';
 const DICTS = { en, ru };
 
 /** The active bundle. Reads app.locale, so anything calling it re-runs on change. */

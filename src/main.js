@@ -4,6 +4,7 @@ import App from './App.svelte';
 import { app, load } from './store.svelte.js';
 import { applyDocumentLocale } from './i18n/index.svelte.js';
 import { SHAPES } from './blocks.js';
+import en from './i18n/en.js';
 
 // `?gallery` puts one of every shape on screen at once. models.test.js can prove
 // a body sits on the floor and fits its footprint; it cannot say whether the
@@ -18,7 +19,8 @@ if (navigator.language?.toLowerCase().startsWith('ru')) app.locale = 'ru';
 if (new URLSearchParams(location.search).has('gallery')) {
   app.blocks = [
     { type: 'direction', value: 'right' },
-    ...SHAPES.map(([shape, role]) => ({ type: 'box', name: role, label: '', shape })),
+    // Named in English whatever the locale: these are d2 keys, and stay stable.
+    ...SHAPES.map((shape) => ({ type: 'box', name: en.ui[`shape.${shape || 'default'}`], label: '', shape })),
   ];
 } else {
   // Before mount, deliberately. Restoring the save replaces app.blocks, and state

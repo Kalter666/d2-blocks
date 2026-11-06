@@ -13,6 +13,20 @@ export async function open(page) {
 }
 
 /**
+ * Do `action` and wait until the render it caused has finished. Waits on a
+ * counter rather than on `.busy` rising and falling: a fast render can drop
+ * `.busy` before the first poll ever sees it up. The action must change what is
+ * drawn — the same source twice is coalesced and never re-renders.
+ */
+export async function drawn(page, action) {
+  const paper = page.locator('.paper');
+  const count = async () => Number(await paper.getAttribute('data-render'));
+  const before = await count();
+  await action();
+  await expect.poll(count, { timeout: 20_000 }).toBeGreaterThan(before);
+}
+
+/**
  * The `d2 source` textarea. The store re-serialises the block tree into it
  * reactively on every edit, independent of the canvas/WASM, so its value is the
  * robust surface to assert an edit actually landed.

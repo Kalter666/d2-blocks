@@ -4,18 +4,13 @@
   import Examples from './Examples.svelte';
   import MermaidImport from './MermaidImport.svelte';
   import { draw } from './d2.js';
-  import { keys, defaultStyle, DIRECTIONS } from './blocks.js';
+  import { keys, newBlock, DIRECTIONS } from './blocks.js';
   import {
-    app, source, add, undo, redo, canUndo, canRedo, save, setSource, commit,
+    app, source, add, undo, redo, canUndo, canRedo, save, saving, setSource, commit,
     direction, setDirection, mermaid,
   } from './store.svelte.js';
   import { t, LOCALES, setLocale, example as exampleText } from './i18n/index.svelte.js';
-
-  // ids only — the display name comes from t('theme.<id>') so it follows the locale.
-  const THEMES = [0, 1, 3, 4, 5, 6, 7, 8, 100, 302, 300];
-  // d2 emits both and picks via prefers-color-scheme, so the diagram follows the
-  // OS theme like the rest of the app. Otherwise it's a white slab in dark mode.
-  const DARK_THEMES = [200, 201, 301];
+  import { THEMES, DARK_THEMES, LAYOUTS, themeIds } from './settings.js';
   const REPO = 'https://github.com/Kalter666/d2-blocks';
 
   let showCode = $state(true);
@@ -33,15 +28,17 @@
   // as format-on-blur.
   let draft = $state(null);
 
-  // Re-render on any change, coalesced. A token drops results that arrive after
-  // a newer render has already started.
+  // Re-render on any change, coalesced. Three things depend on how this runs:
+  // - `app.busy` goes up in the same tick as the change, before the debounce.
+  //   The e2e suite waits on `.busy` rising then falling to know *this* change
+  //   was drawn; moving it into the timer or skipping unchanged input hangs it.
+  // - `token` drops results that arrive after a newer render has started.
+  // - every d2 call goes through draw(), never the engine (architecture.test.js).
+  const DEBOUNCE = 160; // ms; typing coalesces into one render
   let token = 0;
   $effect(() => {
-    const forced = app.appearance;
-    const selectedThemeID = forced === 'dark' ? app.darkTheme : app.theme;
-    const selectedDarkThemeID = forced === 'light' ? app.theme : app.darkTheme;
-    const [text, layout, themeID, darkThemeID, sketch, board] =
-      [src, app.layout, selectedThemeID, selectedDarkThemeID, app.sketch, app.board];
+    const { themeID, darkThemeID } = themeIds(app.appearance, app.theme, app.darkTheme);
+    const [text, layout, sketch, board] = [src, app.layout, app.sketch, app.board];
     const mine = ++token;
     app.busy = true;
     const timer = setTimeout(async () => {
@@ -54,29 +51,25 @@
       } catch (e) {
         if (mine === token) app.error = String(e?.message ?? e).trim();
       } finally {
-        if (mine === token) app.busy = false;
+        if (mine === token) { app.busy = false; app.renders++; }
       }
-      save();
-    }, 160);
+    }, DEBOUNCE);
     return () => clearTimeout(timer);
   });
 
-  /** d2 merges same-named boxes, so a new block needs a name nobody is using. */
-  function freeName(base) {
-    const taken = new Set(options.map((o) => o.name));
-    if (!taken.has(base)) return base;
-    for (let i = 2; ; i++) if (!taken.has(`${base} ${i}`)) return `${base} ${i}`;
-  }
+  // Autosave on its own, so a diagram d2 can't draw (or a hung worker) still
+  // saves. saving() is read here, not in the timer: that read is what makes the
+  // effect re-run on every persisted value.
+  $effect(() => {
+    const data = saving();
+    const timer = setTimeout(() => save(data), DEBOUNCE);
+    return () => clearTimeout(timer);
+  });
 
-  const addBox = () => add({ type: 'box', name: freeName('box'), label: '', shape: '' });
-  const addGroup = () => add({ type: 'group', name: freeName('group'), label: '', children: [] });
-  const addLink = () => add({
-    type: 'link', arrow: '->', label: '',
-    src: options[0]?.key ?? '', dst: options[1]?.key ?? options[0]?.key ?? '',
-  });
-  const addStyle = () => add({
-    type: 'style', target: options[0]?.key ?? '', prop: 'fill', value: defaultStyle('fill'),
-  });
+  const addBox = () => add(newBlock('box', options));
+  const addGroup = () => add(newBlock('group', options));
+  const addLink = () => add(newBlock('link', options));
+  const addStyle = () => add(newBlock('style', options));
 
   function flash(msg) {
     toast = msg;
@@ -167,8 +160,7 @@
 
   <label>{t('toolbar.layout')}
     <select bind:value={app.layout}>
-      <option value="dagre">dagre</option>
-      <option value="elk">elk</option>
+      {#each LAYOUTS as l}<option value={l}>{l}</option>{/each}
     </select>
   </label>
 

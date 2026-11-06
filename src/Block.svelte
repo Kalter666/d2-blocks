@@ -5,7 +5,7 @@
   import { app, commit, del, reorder } from './store.svelte.js';
   import { t } from './i18n/index.svelte.js';
   import {
-    targets, safeKey, renameKey, collides, defaultStyle,
+    targets, safeKey, renameKey, collides, defaultStyle, isNamed,
     SHAPES, STYLE_PROPS, DIRECTIONS, ARROWS,
   } from './blocks.js';
 
@@ -22,7 +22,7 @@
     app.board ? [] : (app.diagram?.shapes ?? []).map((s) => s.id),
     [block.src, block.dst, block.target],
   ));
-  const named = $derived(block.type === 'box' || block.type === 'group');
+  const named = $derived(isNamed(block));
 
   // Typing can't be refused mid-word — you'd never get to type "authx" past
   // "auth" — so a bad name is flagged instead of blocked. d2 would merge two
@@ -36,7 +36,7 @@
 
   // The d2 id this block draws on the canvas, so hovering can light it up.
   const targetId = $derived.by(() => {
-    if (block.type === 'box' || block.type === 'group') return path + safeKey(block.name);
+    if (named) return path + safeKey(block.name);
     if (block.type === 'style') return block.target;
     if (block.type === 'link') {
       // Two `a -> b` lines are two connections, `(a -> b)[0]` and `[1]`, in
@@ -65,13 +65,9 @@
   // dropping what the user wrote.
   function toggleMd() {
     commit();
-    if (block.md) {
-      delete block.md;
-      mdOpen = false;
-    } else {
-      block.md = true;
-      mdOpen = false;
-    }
+    if (block.md) delete block.md;
+    else block.md = true;
+    mdOpen = false;
   }
 
   const spec = $derived(STYLE_PROPS[block.prop] ?? {});
@@ -127,7 +123,7 @@
       {/if}
       <span class="verb dim">{t('block.shaped')}</span>
       <select class="slot" bind:value={block.shape} onfocus={commit}>
-        {#each SHAPES as [value]}<option {value} title="d2: {value || 'no shape'}">{!value && block.md ? t('shape.textOnly') : t(`shape.${value || 'default'}`)}</option>{/each}
+        {#each SHAPES as value}<option {value} title="d2: {value || 'no shape'}">{!value && block.md ? t('shape.textOnly') : t(`shape.${value || 'default'}`)}</option>{/each}
       </select>
       <button class="chip" class:on={block.md} onclick={toggleMd}
         title={block.md ? t('block.md.off') : t('block.md.on')}>¶</button>
@@ -139,7 +135,7 @@
       <input class="slot" bind:value={block.label} onfocus={commit} placeholder={t('placeholder.sameAsName')} size="10" />
 
     {:else if block.type === 'link'}
-      <span class="verb">{t('block.verb.connect')}</span>
+      <span class="verb">{t('block.verb.link')}</span>
       <select class="slot" bind:value={block.src} onfocus={commit}>
         {#each options as o}<option value={o.key}>{' '.repeat(o.depth * 2) + o.name}</option>{/each}
       </select>

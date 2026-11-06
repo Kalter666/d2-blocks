@@ -7,7 +7,7 @@
 //   - and build the 3D scene without throwing.
 // Organised like the d2 tour (d2lang.com/tour), so a gap is easy to spot.
 import { test, expect } from '@playwright/test';
-import { open, source } from './helpers.js';
+import { open, source, drawn } from './helpers.js';
 
 // A 1×1 PNG, so icon cases need no network and can't fail on CORS. Quoted: the
 // `;` in a data URL would otherwise end the statement.
@@ -213,16 +213,13 @@ for (const [name, { src, texts = [], boards }] of Object.entries(CASES)) {
     const picker = page.locator('header label:has-text("board") select');
     if (await picker.count() && await picker.inputValue()) await picker.selectOption('');
 
-    // `busy` goes up in the same tick the source changes (the render itself is
-    // debounced), so seeing it rise and fall means *this* case was drawn — not
-    // the previous one, even when both draw the same picture.
+    // Waiting on the render counter means *this* case was drawn — not the
+    // previous one, even when both draw the same picture.
     const pane = source(page);
-    const busy = page.locator('.busy');
-    await expect(busy).toHaveCount(0, { timeout: 20_000 });
-    await pane.fill(src);
-    await expect(busy).toHaveCount(1);
-    await pane.blur(); // drops the draft, so what's shown is the editor's own reprint
-    await expect(busy).toHaveCount(0, { timeout: 20_000 });
+    await drawn(page, async () => {
+      await pane.fill(src);
+      await pane.blur(); // drops the draft, so what's shown is the editor's own reprint
+    });
     await expect(page.locator('.error')).toHaveCount(0);
     await expect(pane).toHaveValue(`${src}\n`);
 
