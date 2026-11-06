@@ -5,6 +5,7 @@ import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { D2 } from '@terrastruct/d2';
 import { serialize, keys, STYLE_PROPS, defaultStyle } from './blocks.js';
+import { decodeId } from './ids.js';
 
 // The d2 worker holds the event loop open, hence --test-force-exit in the
 // npm script. Don't exit from an after() hook — it swallows late failures.
@@ -201,13 +202,18 @@ test('rendered SVG tags every shape with its id, so the canvas can link back', a
   // d2 base64s the XML-escaped id onto the <g> class, so decode rather than
   // encode: `a -> b` is stored as `a -&gt; b`, and there may be extra classes.
   const found = [...svg.matchAll(/<g class="([^"]+)"/g)]
-    .map((m) => unescapeXml(Buffer.from(m[1].split(' ')[0].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString()));
+    .flatMap((m) => { try { return [decodeId(m[1].split(' ')[0])]; } catch { return []; } }); // as index() does
 
   for (const id of [...r.diagram.shapes.map((s) => s.id), ...r.diagram.connections.map((c) => c.id)]) {
     assert.ok(found.includes(id), `no <g> for ${id}; found ${JSON.stringify(found)}`);
   }
 });
 
-const unescapeXml = (s) =>
-  s.replace(/&(?:amp|lt|gt|#34|#39);/g, (e) =>
-    ({ '&amp;': '&', '&lt;': '<', '&gt;': '>', '&#34;': '"', '&#39;': "'" })[e]);
+
+test('duplicate links are numbered in source order', async () => {
+  // Block.svelte maps the nth `a -> b` block to the nth matching connection for
+  // hover; that only holds if d2 keeps source order and indexes from 0.
+  const { diagram } = await d2.compile('a -> b: first\na -> b: second\n', { layout: 'dagre' });
+  assert.deepEqual(diagram.connections.map((c) => [c.id, c.label]),
+    [['(a -> b)[0]', 'first'], ['(a -> b)[1]', 'second']]);
+});

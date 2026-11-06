@@ -1,6 +1,6 @@
 <script>
   import { app } from './store.svelte.js';
-  import { index } from './d2.js';
+  import { index } from './ids.js';
   import { t } from './i18n/index.svelte.js';
   import Scene from './Scene.svelte';
 

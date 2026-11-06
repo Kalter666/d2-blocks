@@ -39,7 +39,11 @@
     if (block.type === 'box' || block.type === 'group') return path + safeKey(block.name);
     if (block.type === 'style') return block.target;
     if (block.type === 'link') {
-      const c = app.diagram?.connections?.find((c) => c.src === block.src && c.dst === block.dst);
+      // Two `a -> b` lines are two connections, `(a -> b)[0]` and `[1]`, in
+      // source order. Taking the first match lit the first one for both.
+      const same = (l) => l.src === block.src && l.dst === block.dst;
+      const nth = siblings.filter((b) => b.type === 'link' && same(b)).indexOf(block);
+      const c = (app.diagram?.connections ?? []).filter(same)[Math.max(nth, 0)];
       return c?.id ?? null;
     }
     return null;

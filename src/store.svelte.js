@@ -129,7 +129,9 @@ export function load() {
     app.sketch = saved.sketch ?? app.sketch;
     app.look = saved.look ?? app.look;
   } catch {
-    /* corrupt save, start fresh */
+    // Corrupt save, or one a parse bug can't read. Start fresh, but keep the
+    // bytes: the first autosave would otherwise overwrite the only copy.
+    try { localStorage.setItem(KEY + '.bak', localStorage.getItem(KEY)); } catch { /* full or blocked */ }
   } finally {
     loaded = true;
   }
