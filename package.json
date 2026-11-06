@@ -17,13 +17,13 @@
     "test:e2e": "playwright test"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.0",
-    "@sveltejs/vite-plugin-svelte": "^6.2.1",
-    "svelte": "^5.42.2",
-    "vite": "^7.1.7"
+    "@playwright/test": "^1.65.0",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "svelte": "^5.57.3",
+    "vite": "^8.3.6"
   },
   "dependencies": {
     "@terrastruct/d2": "^0.1.33",
-    "three": "^0.185.1"
+    "three": "^0.187.0"
   }
 }
