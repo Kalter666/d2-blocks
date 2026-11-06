@@ -12,4 +12,5 @@ playwright-report/
 .env
 .env.*
 *.local
-.claude/
+# .claude/settings.json and skills are shared; personal overrides are not
+.claude/settings.local.json

@@ -8,7 +8,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  reporter: [['list'], ['html', { open: 'never' }]],
+  // The html report is for CI's uploaded artifact; locally it only rewrote
+  // playwright-report/ on every run, noise for anything grepping the tree.
+  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'line',
   timeout: 30_000,
   expect: { timeout: 10_000 }, // d2's cold wasm compile is ~6 MB (see d2.js PATIENCE=8s)
   use: {

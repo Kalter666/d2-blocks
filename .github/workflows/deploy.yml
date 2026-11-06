@@ -1,7 +1,11 @@
 name: Deploy to GitHub Pages
 
+# Deploys only what the Tests workflow passed, e2e included. It used to deploy
+# on push in parallel with Tests, so a red e2e still shipped.
 on:
-  push:
+  workflow_run:
+    workflows: [Tests]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -16,15 +20,18 @@ concurrency:
 
 jobs:
   build:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The commit Tests ran on, not whatever main is by now.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm test
       # Project sites live under /<repo>/, so the base path has to match.
       - run: npm run build
         env:

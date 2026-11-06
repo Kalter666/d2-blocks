@@ -17,6 +17,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - run: npm run check
+      # The dev server e2e runs against tolerates things the production build
+      # doesn't; until now only the deploy job ever ran it, after the merge.
+      - run: npm run build
       # GitHub Actions sets CI=true, so playwright.config uses retries + starts
       # its own dev server rather than reusing one.
       - run: npx playwright install --with-deps chromium

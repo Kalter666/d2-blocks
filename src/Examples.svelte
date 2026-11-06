@@ -266,6 +266,7 @@
     font-size: 11px;
     line-height: 1.4;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
   }
   .tags { display: flex; gap: 4px; flex-wrap: wrap; margin-block-start: auto; padding-block-start: 8px; }
