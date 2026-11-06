@@ -191,16 +191,9 @@ d2 runs in a web worker via [`@terrastruct/d2`](https://www.npmjs.com/package/@t
 d2 tags every shape's `<g>` with `base64(id)`, so there is no second render
 pipeline and no hit-testing geometry.
 
-| File | |
-|---|---|
-| `src/blocks.js` | block schema, `serialize`, `parse`, tree moves — the core |
-| `src/store.svelte.js` | app state, undo history, persistence |
-| `src/d2.js` | compile + render, and the SVG ↔ id index |
-| `src/boards.js` | layers / scenarios / steps: listing and picking a board |
-| `src/md.js` | the markdown ⟷ HTML bridge behind the rich-text editor |
-| `src/models.js` | the 3D bodies — DOM-free geometry, so a test can measure them |
-| `src/Scene.svelte` | the three.js renderer: skins, materials, lights, camera |
-| `src/examples.js` | the bundled `.d2` gallery and its catalogue |
+The module map, invariants and recipes for changing things live in
+[`CLAUDE.md`](CLAUDE.md), which is written for whoever edits the code next,
+person or agent.
 
 ## Known limits
 
@@ -218,11 +211,10 @@ pipeline and no hit-testing geometry.
   clothed figure, input/output is an open workstation, a process step is a
   conveyor station, a document is a tabbed file folder, a page is a monitor, a
   callout is a pinned note, and a component is a populated circuit board. Only a
-  container's platform is a plain extrusion.
-- **Models are per family.** All eighteen selectable shapes now have distinct
-  physical readings. Skins are painted procedurally into
-  canvases at startup — no image assets — and every model is built to the footprint
-  d2 laid out, so the 3D view and the flat one agree about where things are.
+  container's platform is a plain extrusion. Skins are painted procedurally into
+  canvases at startup — no image assets — and every model is built to the
+  footprint d2 laid out, so the 3D view and the flat one agree about where
+  things are.
 - **3D shows one line of each label.** Labels are drawn into a canvas texture, so a
   markdown note appears in 3D as its first line — read it in flat mode or on the
   block.
@@ -258,8 +250,9 @@ pipeline and no hit-testing geometry.
   problem, serve `d2.wasm` as a separate cacheable asset instead of using the
   npm browser bundle, which inlines it.
 - `parse` is a line scanner, not a d2 parser. It's exact on files this editor
-  wrote and non-destructive on files it didn't, but a d2 keyword block like
-  `vars: { … }` shows up as an ordinary group.
+  wrote and non-destructive on files it didn't: d2 keyword maps (`vars`,
+  `classes`, boards), `sql_table`/`class` bodies, globs and the like are kept as
+  raw d2 blocks rather than becoming editable ones.
 
 ## Licence
 
