@@ -57,6 +57,7 @@
 <svelte:window onkeydown={onKey} />
 
 {#if open}
+  <!-- biome-ignore lint/a11y/noStaticElementInteractions: click-outside closes; the keyboard path is Esc on the dialog -->
   <div
     class="backdrop"
     role="presentation"
@@ -83,7 +84,7 @@
           ></textarea>
         </div>
         <aside class="preview-pane">
-          <div class="preview" aria-label={t('mermaid.previewAria')}>
+          <section class="preview" aria-label={t('mermaid.previewAria')}>
             {#if preview}
               <div class="svg">{@html preview}</div>
             {:else if error}
@@ -93,7 +94,7 @@
             {:else}
               <span class="preview-message">{t('mermaid.pastePrompt')}</span>
             {/if}
-          </div>
+          </section>
           <button class="load" onclick={doImport} disabled={!text.trim() || !!error}>{t('mermaid.import')}</button>
           <small>{t('mermaid.footnote')}</small>
         </aside>

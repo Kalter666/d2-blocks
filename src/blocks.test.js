@@ -309,7 +309,7 @@ test('a connection with a map body and inline maps survive verbatim', () => {
     '}',
     '',
   ].join('\n');
-  assert.equal(serialize(parse(src)) + '\n', src);
+  assert.equal(`${serialize(parse(src))}\n`, src);
 });
 
 test('a group holding a table is still a group', () => {
@@ -330,7 +330,7 @@ test('syntax the blocks cannot hold comes back verbatim', () => {
     'tag: \\#hashtag',
     '',
   ].join('\n');
-  assert.equal(serialize(parse(src)) + '\n', src);
+  assert.equal(`${serialize(parse(src))}\n`, src);
   assert.equal(parse(src)[0].type, 'box', 'a unicode name is still a box');
 });
 

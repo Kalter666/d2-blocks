@@ -467,7 +467,10 @@ export function keys(blocks, prefix = '', depth = 0) {
 /** Depth-first walk, so the UI can find and mutate a block by identity. */
 export function remove(blocks, target) {
   const i = blocks.indexOf(target);
-  if (i !== -1) return blocks.splice(i, 1), true;
+  if (i !== -1) {
+    blocks.splice(i, 1);
+    return true;
+  }
   return blocks.some((b) => b.type === 'group' && remove(b.children, target));
 }
 

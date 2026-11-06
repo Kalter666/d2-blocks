@@ -24,6 +24,7 @@
   // in the same breath; re-seeding on every keystroke would reset the caret.
   $effect(() => {
     if (!el || value === last) return;
+    // biome-ignore lint/plugin: toHtml() escapes every text run (md.js esc)
     el.innerHTML = toHtml(value);
     last = value;
   });
@@ -145,6 +146,7 @@
         onmousedown={(e) => e.preventDefault()} onclick={() => expand(!big)}>{big ? '⤡' : '⤢'}</button>
     </div>
 
+    <!-- biome-ignore lint/a11y/useSemanticElements: a rich-text editor has to be contenteditable; <textarea> cannot hold markup -->
     <div
       class="body"
       bind:this={el}

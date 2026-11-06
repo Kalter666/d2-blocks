@@ -288,4 +288,4 @@ export function fromMermaid(text) {
 }
 
 // A convenience for the preview: mermaid text -> d2 source, or throw.
-export const mermaidToD2 = (text) => serialize(fromMermaid(text)) + '\n';
+export const mermaidToD2 = (text) => `${serialize(fromMermaid(text))}\n`;

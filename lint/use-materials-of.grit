@@ -1,0 +1,12 @@
+// A mesh's `material` may be one material, an array, or absent. The inline
+// Array.isArray check was copied five times and one copy missed the null case;
+// models.js materialsOf() is the single place that gets it right.
+language js
+
+`Array.isArray($node.material)` as $check where {
+  register_diagnostic(
+    span = $check,
+    message = "Use materialsOf(node) from models.js instead of checking .material by hand.",
+    severity = "error"
+  )
+}

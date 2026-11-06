@@ -17,6 +17,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - run: npm run lint
       - run: npm run check
       # The dev server e2e runs against tolerates things the production build
       # doesn't; until now only the deploy job ever ran it, after the merge.

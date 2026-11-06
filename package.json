@@ -16,9 +16,11 @@
     "test": "node --test --test-force-exit",
     "test:e2e": "playwright test",
     "check": "svelte-check --threshold error",
-    "verify": "npm test && npm run check && npm run build"
+    "verify": "npm test && npm run lint && npm run check && npm run build",
+    "lint": "biome lint"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.6.3",
     "@playwright/test": "^1.65.0",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "svelte": "^5.57.3",

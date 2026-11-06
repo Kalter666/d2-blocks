@@ -234,7 +234,7 @@
 
       // A real conduit first, with a narrow animated light strip riding just
       // above its surface. Transparent gaps reveal the dark hose underneath.
-      const dash = c.strokeDash > 0 ? c.strokeDash : 0;
+      const dash = Math.max(c.strokeDash || 0, 0); // unset is undefined, and Math.max(undefined, 0) is NaN
       const tubeGeo = cableGeometry(wireCurve, 3.2, tubeSegments, tubeSides, dash);
       const tube = new THREE.Mesh(tubeGeo, new THREE.MeshStandardMaterial({
         color: 0x26323a, metalness: 0.68, roughness: 0.38, envMapIntensity: 1.1,

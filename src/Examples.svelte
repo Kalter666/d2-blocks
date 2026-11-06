@@ -54,6 +54,7 @@
 <svelte:window onkeydown={onKey} />
 
 {#if open}
+  <!-- biome-ignore lint/a11y/noStaticElementInteractions: click-outside closes; the keyboard path is Esc on the dialog -->
   <div
     class="backdrop"
     role="presentation"
@@ -77,13 +78,13 @@
           placeholder={t('examples.searchPlaceholder')}
           aria-label={t('examples.searchAria')}
         />
-        <div class="categories" aria-label={t('examples.categoriesAria')}>
+        <fieldset class="categories" aria-label={t('examples.categoriesAria')}>
           {#each ['All', ...EXAMPLE_CATEGORIES] as item}
             <button class:active={category === item} onclick={() => (category = item)}>
               {item === 'All' ? t('examples.all') : categoryLabel(item)}
             </button>
           {/each}
-        </div>
+        </fieldset>
       </div>
 
       <div class="content">
@@ -120,7 +121,7 @@
             </div>
             <span class="editable">{t('examples.editable')}</span>
           </div>
-          <div class="preview" aria-label={t('examples.previewAria', { title: exampleText(selected.id).title })}>
+          <section class="preview" aria-label={t('examples.previewAria', { title: exampleText(selected.id).title })}>
             {#if preview}
               <div class="svg">{@html preview}</div>
             {:else if previewError}
@@ -128,7 +129,7 @@
             {:else}
               <span class="preview-message">{t('examples.drawingPreview')}</span>
             {/if}
-          </div>
+          </section>
           <p>{exampleText(selected.id).description}</p>
           <button class="load" onclick={loadSelected}>{t('examples.use')}</button>
           <small>{t('examples.footnote')}</small>
@@ -205,7 +206,8 @@
   }
   input:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
 
-  .categories { display: flex; gap: 5px; overflow-x: auto; }
+  /* A fieldset for its group semantics; none of its default box. */
+  .categories { display: flex; gap: 5px; overflow-x: auto; border: 0; margin: 0; padding: 0; min-inline-size: 0; }
   .categories button {
     flex: none;
     padding: 5px 9px;

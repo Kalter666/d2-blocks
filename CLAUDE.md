@@ -11,14 +11,15 @@ npm run dev                 # http://localhost:5173/d2-blocks/  (base path is /d
 npm test                    # node --test: every *.test.js under src/ (~3 s; loads the d2 wasm)
 npm test -- src/blocks.test.js                        # one unit file (~0.1 s)
 npm test -- --test-name-pattern="round-trip" src/blocks.test.js
+npm run lint                # Biome, lint only (<1 s); config and reasons in biome.jsonc
 npm run check               # svelte-check, errors only (~5 s) — the fast check for .svelte edits
-npm run verify              # test + check + build: run before calling work done
+npm run verify              # test + lint + check + build: run before calling work done
 npm run test:e2e            # Playwright, chromium (~1.5 min); starts/reuses the dev server on 5173
 npx playwright test e2e/syntax.spec.js -g "sql_table"  # one e2e case
 npm run build               # BASE_PATH env overrides the /d2-blocks/ base
 ```
 
-`?gallery` on the dev URL shows one of every 3D shape (doesn't touch the saved diagram). CI (`.github/workflows/test.yml`) runs unit, check, build, then e2e; Pages deploys from `main` only after that workflow passes.
+`?gallery` on the dev URL shows one of every 3D shape (doesn't touch the saved diagram). CI (`.github/workflows/test.yml`) runs unit, lint, check, build, then e2e; Pages deploys from `main` only after that workflow passes.
 
 `scripts/record-demo.mjs` and `scripts/record-features.mjs` re-record the GIFs in `docs/` (dev server on :5199 via `npx vite --port 5199 --strictPort`, ffmpeg, a real GPU). They are not tests and rewrite binary files: don't run them unless asked; say so if a UI change makes a clip stale.
 
@@ -57,7 +58,18 @@ block tree ──serialize()──> d2 source ──draw()──> { svg, diagram
 - **Other bridges**: `src/md.js` (markdown ⟷ HTML for the rich-text editor; `rich()` refuses WYSIWYG unless the markdown round-trips exactly), `src/mermaid.js` (import/export, best-effort, not lossless), `src/examples.js` + `src/examples/*.d2` (gallery).
 - **i18n**: `src/i18n/en.js` and `ru.js` must define identical keys; UI strings go through `t()` from `src/i18n/index.svelte.js`.
 
-## Rules the tests enforce
+## Rules the tests and the linter enforce
+
+`npm run lint` (Biome, `biome.jsonc`, plugins in `lint/*.grit`) catches these in under a second; the formatter is deliberately off. It fails on:
+- importing `@terrastruct/d2` anywhere but `src/d2.js` (and tests);
+- `document`, `window`, `localStorage`, `matchMedia`… in the DOM-free modules node tests import (`blocks`, `boards`, `history`, `settings`, `ids`, `md`, `mermaid`, `serial`, `models`, `3d/layout`, `3d/cables`);
+- `localStorage` in any `.js` except `store.svelte.js`;
+- importing `@playwright/test` in a spec instead of `./helpers.js`;
+- assigning `innerHTML`/`outerHTML` or `insertAdjacentHTML` (raw HTML sinks), and checking `Array.isArray(x.material)` by hand instead of `materialsOf()`.
+
+A deliberate exception gets `// biome-ignore <rule>: <why>` (`<!-- … -->` in markup), never a blanket disable. When a recommended rule fights an idiom of this codebase, turn it off in `biome.jsonc` with the reason, as the existing ones are.
+
+The tests enforce:
 
 - Only `d2.js` imports `@terrastruct/d2`, and `{@html}` appears only where it receives `draw()` output (`architecture.test.js`). A new preview or export calls `draw()`.
 - en/ru keys match, and every key the code builds at runtime (`shape.*`, `block.verb.*`, `board.*`, `theme.*`, categories) exists (`i18n.test.js`).

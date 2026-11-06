@@ -21,6 +21,7 @@ export function unsafeAttr(name, value = '') {
   if (n !== 'href' && n !== 'xlink:href' && n !== 'src') return false;
   // Control characters and whitespace are ignored when a URL is resolved, so
   // `java\nscript:` is a live scheme. Strip them before deciding, as a browser does.
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: matching control characters is the point
   return !SAFE_URL.test(value.replace(/[\u0000-\u0020]/g, '').toLowerCase());
 }
 

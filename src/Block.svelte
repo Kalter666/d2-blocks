@@ -98,6 +98,7 @@
   }
 </script>
 
+<!-- biome-ignore lint/a11y/useSemanticElements: a draggable div keeps native DnD and the stack CSS; the role carries the semantics -->
 <div
   class="block {block.type}"
   class:lit

@@ -149,6 +149,7 @@ const CASES = {
     src: lines('classes: {', '  dashed: {', '    style.stroke-dash: 3', '  }', '}', 'a -> b: {', '  class: dashed', '}'),
   },
   'vars substitution': {
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: d2's own ${var} syntax
     src: lines('vars: {', '  name: Server', '}', 'x: ${name}'), texts: ['Server'],
   },
   'd2-config vars': {

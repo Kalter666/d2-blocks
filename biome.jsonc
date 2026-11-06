@@ -1,0 +1,97 @@
+// Lint only. The formatter stays off: this codebase's long, comment-dense
+// lines would be rewritten wholesale for no behavioural gain.
+// Every rule turned off or narrowed below says why; project rules (the
+// overrides and lint/*.grit plugins) encode invariants from CLAUDE.md.
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": { "includes": ["**", "!**/dist", "!**/package-lock.json"] },
+  "formatter": { "enabled": false },
+  "assist": { "enabled": false },
+  // Lints the <script> of .svelte files, so the plugins and import rules cover them too.
+  "html": { "experimentalFullSupportEnabled": true },
+  "plugins": [
+    "./lint/no-inner-html.grit",     // raw HTML sinks need sanitize() or escaping, then a reasoned ignore
+    "./lint/use-materials-of.grit"   // three.js materials go through models.js materialsOf()
+  ],
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "suspicious": {
+        // `if ((m = RE.x.exec(t)))` drives both line scanners, and Svelte's
+        // `() => (x = y)` handlers are the idiom; the doubled parens mark intent.
+        "noAssignInExpressions": "off"
+      },
+      "a11y": {
+        // The only <form> is Rich.svelte's method="dialog", whose button *should*
+        // submit. Everywhere else a button is outside any form.
+        "useButtonType": "off"
+      },
+      "style": {
+        // Component CSS is Svelte-scoped and ordered by part, top to bottom.
+        "noDescendingSpecificity": "off",
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "paths": {
+              "@terrastruct/d2": "Call draw() from src/d2.js: it owns the serial gate, the watchdog and sanitize(). (architecture.test.js)"
+            }
+          }
+        }
+      }
+    }
+  },
+  "overrides": [
+    {
+      // The engine itself, and tests that compile with the real d2.
+      "includes": ["src/d2.js", "src/**/*.test.js", "scripts/**"],
+      "linter": { "rules": { "style": { "noRestrictedImports": "off" } } }
+    },
+    {
+      // Specs get the warm-page `test` and helpers from one place.
+      "includes": ["e2e/**/*.spec.js"],
+      "linter": { "rules": { "style": { "noRestrictedImports": {
+        "level": "error",
+        "options": { "paths": {
+          "@playwright/test": "Import test/expect from ./helpers.js: its `page` is the warm, reset page (`cold` for boot tests)."
+        } }
+      } } } }
+    },
+    {
+      // Persistence has one owner, so the save format has one reader and writer.
+      // .js only: in .svelte markup Biome cannot see <script> variables yet, so
+      // it reports `{error}` as the restricted `error` global.
+      "includes": ["src/**/*.js", "!src/store.svelte.js", "!src/**/*.test.js"],
+      "linter": { "rules": { "style": { "noRestrictedGlobals": {
+        "level": "error",
+        "options": { "deniedGlobals": {
+          "localStorage": "Persist through store.svelte.js save()/load(); the format lives in settings.js.",
+          "sessionStorage": "Persist through store.svelte.js save()/load(); the format lives in settings.js."
+        } }
+      } } } }
+    },
+    {
+      // Pure modules that node tests import.
+      "includes": [
+        "src/blocks.js", "src/boards.js", "src/history.js", "src/settings.js", "src/ids.js",
+        "src/md.js", "src/mermaid.js", "src/serial.js", "src/models.js",
+        "src/3d/layout.js", "src/3d/cables.js", "src/examples/catalog.js"
+      ],
+      "linter": { "rules": { "style": { "noRestrictedGlobals": {
+        "level": "error",
+        "options": { "deniedGlobals": {
+                  "document": "This module stays DOM-free so `node --test` can import it (see CLAUDE.md). Take the value as an argument, or move the code to a .svelte file or a DOM-side module.",
+                  "window": "This module stays DOM-free so `node --test` can import it (see CLAUDE.md). Take the value as an argument, or move the code to a .svelte file or a DOM-side module.",
+                  "navigator": "This module stays DOM-free so `node --test` can import it (see CLAUDE.md). Take the value as an argument, or move the code to a .svelte file or a DOM-side module.",
+                  "localStorage": "This module stays DOM-free so `node --test` can import it (see CLAUDE.md). Take the value as an argument, or move the code to a .svelte file or a DOM-side module.",
+                  "sessionStorage": "This module stays DOM-free so `node --test` can import it (see CLAUDE.md). Take the value as an argument, or move the code to a .svelte file or a DOM-side module.",
+                  "getComputedStyle": "This module stays DOM-free so `node --test` can import it (see CLAUDE.md). Take the value as an argument, or move the code to a .svelte file or a DOM-side module.",
+                  "matchMedia": "This module stays DOM-free so `node --test` can import it (see CLAUDE.md). Take the value as an argument, or move the code to a .svelte file or a DOM-side module.",
+                  "DOMParser": "This module stays DOM-free so `node --test` can import it (see CLAUDE.md). Take the value as an argument, or move the code to a .svelte file or a DOM-side module.",
+                  "XMLSerializer": "This module stays DOM-free so `node --test` can import it (see CLAUDE.md). Take the value as an argument, or move the code to a .svelte file or a DOM-side module."
+        } }
+      } } } }
+    }
+  ]
+}

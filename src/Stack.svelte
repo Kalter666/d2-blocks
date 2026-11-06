@@ -55,6 +55,7 @@
   }
 </script>
 
+<!-- biome-ignore lint/a11y/useSemanticElements: the drop target is a div so drag events and the nested-stack CSS stay simple -->
 <div
   bind:this={el}
   class="stack"

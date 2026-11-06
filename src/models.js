@@ -119,6 +119,7 @@ function onCurve(part, rx, rz, angle, y, k = 0.97) {
 export const PALETTE = ['band', 'cap', 'metal', 'dark', 'matte', 'surface', 'primary', 'glass', 'led', 'lid', 'wall', 'rim'];
 
 /** Every material a mesh holds; `material` may be one, an array, or absent. */
+// biome-ignore lint/plugin: this is the one place that checks by hand
 export const materialsOf = (n) => (Array.isArray(n.material) ? n.material : n.material ? [n.material] : []);
 
 /**

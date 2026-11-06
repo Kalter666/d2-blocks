@@ -1,0 +1,18 @@
+// A string assigned to innerHTML/outerHTML is parsed as markup on this origin,
+// and diagrams here are pasted from strangers. Every such sink is a reviewed
+// exception: d2's SVG goes through sanitize() in d2.js; Rich.svelte's comes from
+// md.js toHtml(), which escapes. Anything new needs the same, and a
+// biome-ignore saying which one.
+language js
+
+or {
+  `$obj.innerHTML = $value`,
+  `$obj.outerHTML = $value`,
+  `$obj.insertAdjacentHTML($pos, $value)`
+} as $sink where {
+  register_diagnostic(
+    span = $sink,
+    message = "Raw HTML sink: route it through sanitize() or an escaping builder, then biome-ignore with the reason.",
+    severity = "error"
+  )
+}

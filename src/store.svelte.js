@@ -19,7 +19,7 @@ export const app = $state({
   renders: 0,    // finished draws, success or error; e2e waits on it (helpers.js drawn())
 });
 
-export const source = () => serialize(app.blocks) + '\n';
+export const source = () => `${serialize(app.blocks)}\n`;
 
 // ------------------------------------------------------------------ history
 
@@ -114,7 +114,7 @@ export function load() {
     // Corrupt, from a newer version, or one a parse bug can't read. Start
     // fresh, but keep the bytes: the first autosave would otherwise overwrite
     // the only copy.
-    try { localStorage.setItem(KEY + '.bak', localStorage.getItem(KEY)); } catch { /* full or blocked */ }
+    try { localStorage.setItem(`${KEY}.bak`, localStorage.getItem(KEY)); } catch { /* full or blocked */ }
   } finally {
     loaded = true;
   }
