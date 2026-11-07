@@ -1,4 +1,6 @@
 name: MCP release
+# Without this the run is titled with the tagged commit's subject.
+run-name: MCP server release ${{ github.ref_name }}
 
 # Push a tag mcp-v<version> (matching mcp/version.js) to publish the MCP server
 # as a GitHub release asset. No npm registry account involved; users run it with
