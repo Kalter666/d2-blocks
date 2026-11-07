@@ -13,6 +13,7 @@ import {
   renderD2, checkD2, convert, examples, shapes, openInEditor,
   THEMES, DARK_THEMES, LAYOUTS, EDITOR, BUDGET_3D, MAX_INLINE_SVG,
 } from './tools.js';
+import { VERSION } from './version.js';
 
 // Sent to the client once, at connect: how to use these tools well. The 2D/3D
 // question comes first because it changes what a good diagram looks like.
@@ -29,7 +30,7 @@ Before drawing for someone, ask whether they want the flat or the 3D view, unles
 
 Prefer a link from open_in_editor over a large SVG: the reader gets editable blocks and both views.`;
 
-const server = new McpServer({ name: 'd2-blocks', version: '1.1.0' }, { instructions });
+const server = new McpServer({ name: 'd2-blocks', version: VERSION }, { instructions });
 
 const text = (t) => ({ content: [{ type: 'text', text: t }] });
 const json = (v) => text(JSON.stringify(v, null, 2));

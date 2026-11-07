@@ -5,6 +5,7 @@
 // one), the block parser, the mermaid bridge, the bundled examples, and the
 // share-link codec. Nothing is reimplemented, so the server can't drift from
 // the editor.
+import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import * as THREE from 'three';
@@ -15,14 +16,17 @@ import { topology } from '../src/3d/layout.js';
 import { toMermaid, mermaidToD2 } from '../src/mermaid.js';
 import { DEFAULTS, THEMES, DARK_THEMES, LAYOUTS } from '../src/settings.js';
 import { EXAMPLE_DEFINITIONS } from '../src/examples/catalog.js';
-import { encode } from '../src/share.js';
+import { encode, EDITOR } from '../src/share.js';
 import en from '../src/i18n/en.js';
 
 export { THEMES, DARK_THEMES, LAYOUTS };
 
-const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
-/** The hosted editor; package.json `homepage` is what Pages serves. */
-export const EDITOR = pkg.homepage;
+export { EDITOR };
+
+// The bundled server (scripts/build-mcp.mjs) ships the .d2 files beside itself;
+// run from the repo, they're in src/. Never a caller-supplied path.
+const EXAMPLES = [new URL('./examples/', import.meta.url), new URL('../src/examples/', import.meta.url)]
+  .find((dir) => existsSync(dir));
 
 /**
  * d2 reports compile errors as a JSON array of `{range, errmsg}`; each errmsg
@@ -236,7 +240,7 @@ export async function examples({ id } = {}) {
   const def = EXAMPLE_DEFINITIONS.find((d) => d.id === id);
   if (!def) throw new Error(`no example ${JSON.stringify(id)}; call examples with no id for the list`);
   // id comes from the catalog, never the caller, so it can't walk the filesystem.
-  const source = await readFile(new URL(`../src/examples/${def.id}.d2`, import.meta.url), 'utf8');
+  const source = await readFile(new URL(`${def.id}.d2`, EXAMPLES), 'utf8');
   return { ...summarize(def), source };
 }
 

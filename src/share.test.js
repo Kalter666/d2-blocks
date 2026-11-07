@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { encode, decode, PREFIX, MAX_SOURCE } from './share.js';
+import { readFileSync } from 'node:fs';
+import { encode, decode, PREFIX, MAX_SOURCE, EDITOR } from './share.js';
 
 test('a diagram survives the link, unicode and all', async () => {
   const src = 'direction: right\nпользователь -> "api.v1": "запрос #1" {style.stroke: "#f00"}\n';
@@ -31,4 +32,8 @@ test('a corrupt or oversized link throws instead of opening', async () => {
   const bomb = await encode('a'.repeat(MAX_SOURCE + 1));
   assert.ok(bomb.length < 2000);
   await assert.rejects(decode(bomb), /over/);
+});
+
+test('links point where package.json says the editor is hosted', () => {
+  assert.equal(EDITOR, JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).homepage);
 });

@@ -22,6 +22,10 @@ jobs:
       # The dev server e2e runs against tolerates things the production build
       # doesn't; until now only the deploy job ever ran it, after the merge.
       - run: npm run build
+      # The packaged MCP server, installed and driven like a user would; catches a
+      # bundling mistake before release day rather than on it.
+      - run: npm run build:mcp
+      - run: node scripts/smoke-mcp.mjs dist-mcp/d2-blocks-mcp.tgz
       # GitHub Actions sets CI=true, so playwright.config uses retries + starts
       # its own dev server rather than reusing one.
       - run: npx playwright install --with-deps chromium

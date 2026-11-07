@@ -155,19 +155,27 @@ Try a link it made: **[order flow](https://kalter666.github.io/d2-blocks/#d2=Rcw
 
 ### Set up
 
-The server runs from a clone (it isn't published to npm):
+It runs locally, from a GitHub release: a single bundled file (~180 KB packed)
+plus the d2 engine, fetched on first run. Node 20+ is all it needs; no clone,
+no npm account.
 
-```sh
-git clone https://github.com/Kalter666/d2-blocks && cd d2-blocks && npm install
-```
-
-- **Claude Code, inside this repo:** nothing to do; `.mcp.json` registers it.
-- **Claude Code, anywhere else:** `claude mcp add d2-blocks -- node /path/to/d2-blocks/mcp/server.js`
-- **Claude Desktop / other clients:** add to the client's MCP config:
-
-  ```json
-  { "mcpServers": { "d2-blocks": { "command": "node", "args": ["/path/to/d2-blocks/mcp/server.js"] } } }
+- **Claude Code:**
+  ```sh
+  claude mcp add d2-blocks -- npx -y --package=https://github.com/Kalter666/d2-blocks/releases/latest/download/d2-blocks-mcp.tgz d2-blocks-mcp
   ```
+- **Claude Desktop / other local MCP clients** — add to the client's config:
+  ```json
+  { "mcpServers": { "d2-blocks": { "command": "npx",
+    "args": ["-y", "--package=https://github.com/Kalter666/d2-blocks/releases/latest/download/d2-blocks-mcp.tgz", "d2-blocks-mcp"] } } }
+  ```
+
+`latest` follows new releases; pin one by using
+`releases/download/mcp-v1.1.0/d2-blocks-mcp.tgz` instead. Inside a clone of this
+repo, Claude Code picks up the development copy from `.mcp.json` instead.
+
+Web Claude and ChatGPT can only reach MCP servers hosted at a public URL, and
+this one isn't hosted; the links it makes open in the hosted editor from
+anywhere.
 
 ### How it works
 

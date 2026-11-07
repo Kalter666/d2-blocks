@@ -9,6 +9,9 @@
 // (parsed, and sanitized on render); the size cap stops a small link inflating
 // into something that hangs the tab.
 
+/** Where the editor is hosted (package.json `homepage`; share.test.js keeps them equal). */
+export const EDITOR = 'https://kalter666.github.io/d2-blocks/';
+
 export const PREFIX = '#d2=';
 export const MAX_SOURCE = 512 * 1024; // bytes of d2, decompressed
 import { LAYOUTS } from './settings.js';
