@@ -51,7 +51,10 @@
         Object.assign(app, { svg, diagram, boards, error: '' });
         if (shown !== board) app.board = shown;
       } catch (e) {
-        if (mine === token) app.error = String(e?.message ?? e).trim();
+        if (mine === token) {
+          app.error = String(e?.message ?? e).trim();
+          if (e?.code === 'dagre-crash') app.error += `\n\n${t('error.dagreCrash')}`;
+        }
       } finally {
         if (mine === token) { app.busy = false; app.renders++; }
       }
@@ -88,7 +91,9 @@
       if (shared == null) return;
       commit();
       draft = null;
-      setSource(shared);
+      setSource(shared.source);
+      if (shared.look) app.look = shared.look;
+      if (shared.layout) app.layout = shared.layout;
       history.replaceState(null, '', location.pathname + location.search);
       flash(t('toast.linkOpened'));
     } catch (e) {

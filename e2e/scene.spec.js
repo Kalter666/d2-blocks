@@ -1,6 +1,6 @@
 // Guards for contracts the 3D view and the canvas lean on, each of which an
 // innocent-looking edit could break with no page error to show for it.
-import { test, expect, open, source, control, drawn } from './helpers.js';
+import { test, expect, open, source, control, drawn, paste } from './helpers.js';
 
 test('in 3D the SVG stays mounted, because the scene reads colours off it', async ({ page }) => {
   await control(page, 'look').selectOption('3d');
@@ -46,4 +46,18 @@ test('Download SVG hands over the rendered diagram', async ({ page }) => {
     page.getByRole('button', { name: 'Download SVG' }).click(),
   ]);
   expect(download.suggestedFilename()).toBe('diagram.svg');
+});
+
+test('when dagre crashes, the error says to switch to elk, and elk draws it', async ({ page }) => {
+  // Links between nested containers: dagre panics on this from ~100 shapes.
+  let src = '';
+  for (let g = 0; g < 10; g++) src += `svc${g}: {\n${Array.from({ length: 10 }, (_, i) => `  n${i}\n`).join('')}}\n`;
+  for (let g = 0; g < 10; g++) for (let i = 0; i < 10; i++) src += `svc${g}.n${i} -> svc${(g * 7 + i * 3 + 1) % 10}.n${(i + 1) % 10}\n`;
+  await control(page, 'look').selectOption('flat');
+  await drawn(page, () => paste(page, src));
+  await expect(page.locator('.canvas .error')).toContainText('Switch layout to elk');
+
+  await drawn(page, () => control(page, 'layout').selectOption('elk'));
+  await expect(page.locator('.canvas .error')).toHaveCount(0);
+  await expect(page.locator('.paper > svg')).toBeVisible();
 });

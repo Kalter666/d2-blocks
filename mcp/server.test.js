@@ -15,9 +15,10 @@ after(() => client.close());
 
 const call = (name, args) => client.callTool({ name, arguments: args });
 
-test('lists the five tools', async () => {
+test('lists the tools, and tells the agent to ask flat or 3D', async () => {
   const { tools } = await client.listTools();
-  assert.deepEqual(tools.map((t) => t.name).sort(), ['check_d2', 'convert', 'examples', 'open_in_editor', 'render_d2']);
+  assert.deepEqual(tools.map((t) => t.name).sort(), ['check_d2', 'convert', 'examples', 'open_in_editor', 'render_d2', 'shapes']);
+  assert.match(client.getInstructions(), /ask whether they want the flat or the 3D view/);
 });
 
 test('a render comes back as SVG text', async () => {

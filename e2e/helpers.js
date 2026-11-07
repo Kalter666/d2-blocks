@@ -69,6 +69,20 @@ export async function drawn(page, action) {
  */
 export const source = (page) => page.getByRole('textbox', { name: 'd2 source' });
 
+/**
+ * Put `text` in the d2 source pane the way a real paste does: focus, one input
+ * event. Use it for big sources — Playwright's fill() inserts multi-line text so
+ * slowly here that 60 shapes' worth never finished in 15 s (20 took 2 s), while
+ * the app handles the same paste in under a second.
+ */
+export async function paste(page, text) {
+  await source(page).evaluate((ta, value) => {
+    ta.focus();
+    ta.value = value;
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+  }, text);
+}
+
 /** A toolbar <select> in the header, found by its wrapping label's text. */
 export const control = (page, label) => page.locator(`header label:has-text("${label}") select`);
 

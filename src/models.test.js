@@ -10,7 +10,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { SHAPES } from './blocks.js';
-import { MODELS, FAMILY, HEIGHT, PALETTE, MOTIONS, familyOf, heightOf, bodyFor, outline, resolvedType, animateParts } from './models.js';
+import { MODELS, FAMILY, HEIGHT, PALETTE, MOTIONS, LOOK_3D, familyOf, heightOf, bodyFor, outline, resolvedType, animateParts } from './models.js';
 import { SKIN, DARK_FAMILY } from './3d/skins.js';
 import { makePalette } from './3d/materials.js';
 
@@ -142,6 +142,7 @@ test('every family has a skin, a dark colour, a height and a model', () => {
     assert.ok(SKIN[family], `${family} has no SKIN in 3d/skins.js`);
     assert.ok(DARK_FAMILY[family], `${family} has no DARK_FAMILY colour`);
     assert.ok(HEIGHT[family], `${family} has no HEIGHT`);
+    assert.ok(LOOK_3D[family], `${family} has no LOOK_3D description`);
   }
   // 'pad' is the container platform; everything else must be reachable.
   for (const family of [...Object.keys(SKIN), ...Object.keys(DARK_FAMILY), ...Object.keys(MODELS)]) {

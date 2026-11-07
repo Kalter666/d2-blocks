@@ -74,6 +74,32 @@ export const FAMILY = {
 };
 export const familyOf = (type) => FAMILY[type] ?? 'block';
 
+/**
+ * What each family *is* in 3D, in a phrase — for anyone choosing a shape for the
+ * 3D view (the MCP `shapes` tool hands these to agents). A new family needs one;
+ * models.test.js checks.
+ */
+export const LOOK_3D = {
+  block: 'a plain stepped block — the generic default',
+  service: 'a compute unit: chassis on feet, vent slats, status lights',
+  db: 'a small server cabinet with drive bays',
+  volume: 'a hooped storage tank with pipework',
+  queue: 'a flanged transport tube, lying down',
+  package: 'a taped cardboard box',
+  gateway: 'a network appliance with Ethernet sockets and aerials',
+  decision: 'a warning sign on a post',
+  process: 'a conveyor station with rollers and a motor',
+  startstop: 'an operator control station with start and stop buttons',
+  state: 'an analog status gauge with a moving needle',
+  file: 'a tabbed file folder with sheets showing',
+  screen: 'a desktop monitor',
+  io: 'an open workstation: screen, keyboard and sockets',
+  note: 'a pinned note board',
+  component: 'a populated circuit board: chip, pins, capacitors',
+  person: 'a small clothed figure',
+  cloud: 'a dense weather cloud',
+};
+
 /** Preserve the editor's shape choice when d2 normalises its compiled type. */
 export function resolvedType(compiledType, source) {
   if (!source) return compiledType;

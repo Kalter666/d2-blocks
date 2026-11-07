@@ -7,7 +7,16 @@ test('a diagram survives the link, unicode and all', async () => {
   const hash = await encode(src);
   assert.ok(hash.startsWith(PREFIX));
   assert.match(hash.slice(PREFIX.length), /^[A-Za-z0-9_-]+$/, 'url-safe, no padding');
-  assert.equal(await decode(hash), src);
+  assert.deepEqual(await decode(hash), { source: src, look: undefined, layout: undefined });
+});
+
+test('a link can name the view it opens in, and only a real one', async () => {
+  assert.deepEqual(await decode(await encode('a', { look: '3d', layout: 'elk' })), { source: 'a', look: '3d', layout: 'elk' });
+  assert.deepEqual(await decode(await encode('a', { look: 'flat' })), { source: 'a', look: 'flat', layout: undefined });
+  assert.equal((await encode('a', { layout: 'tala' })).includes('layout'), false);
+  assert.equal((await encode('a', { look: 'vr' })).includes('look'), false);
+  const forged = `${await encode('a')}&look=<script>`;
+  assert.equal((await decode(forged)).look, undefined);
 });
 
 test('anything else in the fragment is not a diagram', async () => {

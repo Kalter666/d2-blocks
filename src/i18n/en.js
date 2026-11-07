@@ -71,6 +71,7 @@ export default {
     'toast.exampleLoaded': '{title} loaded',
     'toast.mermaidImported': 'mermaid imported',
     'toast.linkOpened': 'diagram opened from the link — undo brings back yours',
+    'error.dagreCrash': 'The dagre layout engine crashed on this diagram (it struggles with links between groups). Switch layout to elk.',
     'toast.linkFailed': 'the link could not be opened: {reason}',
 
     // block editor — verbs and slots

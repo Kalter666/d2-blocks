@@ -191,16 +191,51 @@ yours back. Links decode to at most 512 KB of d2.
 
 | Tool | Input | Returns |
 |---|---|---|
-| `render_d2` | `source`, optional `theme`, `darkTheme`, `layout` (`dagre`/`elk`), `sketch`, `board` | the SVG, or d2's error with line numbers |
-| `check_d2` | `source` | compiles?, what the editor does to it (`exact` / `reformatted` / `changed`), what stays as raw d2, shape/connection/board counts |
+| `render_d2` | `source`, optional `theme`, `darkTheme`, `layout` (`dagre`/`elk`), `sketch`, `board`, `out` | the flat SVG — or, with `out: "x.svg"`, writes it there and returns path and size |
+| `check_d2` | `source`, optional `look` (`flat`/`3d`) | compiles?, what the editor does to it (`exact` / `reformatted` / `changed`), what stays as raw d2, counts, the layout used; with `look: "3d"`, a 3D scene estimate and advice |
+| `shapes` | — | every shape: its d2 name, the role it stands for, the model it becomes in 3D, its mesh count |
 | `convert` | `from` (`mermaid` or `d2`), `source` | the other language (flowcharts; best-effort) |
 | `examples` | optional `id` | the bundled gallery, or one example's d2 source |
-| `open_in_editor` | `source`, optional `base` (e.g. a local dev server) | a link that opens the diagram in this editor |
+| `open_in_editor` | `source`, optional `look`, `layout`, `base` | a link that opens the diagram in this editor, in that view and layout |
+
+### Flat or 3D?
+
+The server tells the agent to ask, because the answer changes what a good
+diagram looks like. Flat is a classic SVG: any size d2 can lay out. In 3D every
+shape becomes a physical model — a `cylinder` is a server cabinet with drive
+bays, a `person` a figure, a `queue` a transport tube — so:
+
+- **fewer, meaningful shapes.** An object is 3–53 meshes (a plain box 3, a
+  database 53) where flat draws one SVG element; aim for about 40 objects and
+  put detail in layers. `check_d2` with `look: "3d"` counts the draw calls and
+  says when it gets heavy.
+- **give every node a role.** Unshaped boxes all become the same generic block;
+  `shapes` lists what each role turns into.
+- **2–3 levels of nesting.** Containers are platforms; deeper nesting stacks
+  them.
+
+`render_d2` only draws flat (3D needs WebGL); for 3D the agent hands over
+`open_in_editor` with `look: "3d"`.
+
+### How big can a diagram be?
+
+Measured with the real engine:
+
+- **The link is never the limit.** It compresses to about a fifth of the
+  source (1,000 shapes ≈ 14 KB) and decodes up to 512 KB of d2.
+- **Layout is.** dagre, the default, crashes on some diagrams with links between
+  groups (from ~100 shapes in testing); the tools then retry with elk and say
+  so, and the editor suggests switching. elk lays out ~600 grouped shapes in
+  ~8 s; the editor's hang detection allows more time the bigger the source.
+- **An SVG reply is small.** d2 inlines its fonts, so 20 shapes are ~46 KB;
+  above 80 KB `render_d2` asks for `out` and writes a file instead of flooding
+  the agent's context.
+- **3D reads best at ~40 objects**, as above.
 
 ### Examples
 
-Ask for a diagram, get a link. The agent writes d2, checks it, and calls
-`open_in_editor`:
+Ask for a diagram, get a link. The agent asks flat or 3D, writes d2, checks
+it, and calls `open_in_editor`:
 
 ```d2
 direction: right
@@ -220,8 +255,9 @@ api -> db: insert
 ```
 
 `reformatted` means the editor reprints `{ shape: person }` as
-`{shape: person}` and the diagram is unchanged. `open_in_editor` then returns
-**[this link](https://kalter666.github.io/d2-blocks/#d2=RcwxDsMgEETRnlPMBXIBikgpU9mND0BgZFayAO0SKVHku0fQuH4zP4kydqnFQ2XP3b2N6rEZFT9YDo0ejWq14HShicdjfV6U-Qn7tPTyWDRR7dL4PaQkKs7Zxe2OmWhHiDTUMR_RAeMvxajd_QE)**.
+`{shape: person}` and the diagram is unchanged. With `look: "3d"` it adds
+`"threeD": { "objects": 3, "containers": 0, "drawCalls": 99, "advice": [] }`.
+`open_in_editor` then returns **[this link](https://kalter666.github.io/d2-blocks/#d2=RcwxDsMgEETRnlPMBXIBikgpU9mND0BgZFayAO0SKVHku0fQuH4zP4kydqnFQ2XP3b2N6rEZFT9YDo0ejWq14HShicdjfV6U-Qn7tPTyWDRR7dL4PaQkKs7Zxe2OmWhHiDTUMR_RAeMvxajd_QE)**.
 
 Bring a mermaid flowchart over with `convert` (`from: "mermaid"`):
 
@@ -249,8 +285,9 @@ Start from the gallery: `examples` lists ids such as `three-tier`,
 `ecommerce` and `realtime-chat`; `examples { id: "three-tier" }` returns its
 source, ready to edit or **[open](https://kalter666.github.io/d2-blocks/#d2=VY9BbsMgEEX3nGIu0AuwqGTZi6YL12pSZRmNYWojOeDMTBZRxN0r7NZWV8D_A7znA5PTkKIFDsOo5kuIxcKywFNGnMnCTCwpZlM3rYW6abfCTenuszlTb-FMPXxzikrR7zdxoGyq7mChmucpOCyfQdUdtpECgHGYKJsa3UgWPskHAVcO25RoYvIXj4rZNKjYo5CFjsMV-QH-N9nJHlOInjivRvDyCgv92-nUHYtISRZuUdTgAEVIpaiUZiF-P360ZVf4lwdWvDEpMKGXv3zHud2JA8kq8r9ada5BxPwA)**.
 
-`render_d2` returns the SVG itself, for an agent that wants to save or embed it
-(`sketch: true` for the hand-drawn look). It's d2's output: a markdown label
+`render_d2` returns the flat SVG, for an agent that wants to save or embed it
+(`sketch: true` for the hand-drawn look, `out: "diagram.svg"` for anything but a
+small one). It's d2's output: a markdown label
 can carry raw HTML, so treat the SVG as untrusted if its source was.
 
 ## Develop

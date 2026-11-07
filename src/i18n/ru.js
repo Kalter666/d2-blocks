@@ -70,6 +70,7 @@ export default {
     'toast.exampleLoaded': 'Пример «{title}» загружен',
     'toast.mermaidImported': 'mermaid импортирован',
     'toast.linkOpened': 'диаграмма открыта по ссылке — отмена вернёт вашу',
+    'error.dagreCrash': 'Движок раскладки dagre упал на этой диаграмме (ему тяжело со связями между группами). Переключите раскладку на elk.',
     'toast.linkFailed': 'ссылку не удалось открыть: {reason}',
 
     // редактор блоков — глаголы и поля

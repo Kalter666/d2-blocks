@@ -1,4 +1,6 @@
-// A diagram carried in a URL fragment: `#d2=<base64url(deflate-raw(source))>`.
+// A diagram carried in a URL fragment: `#d2=<base64url(deflate-raw(source))>`,
+// optionally followed by `&look=3d|flat` and `&layout=dagre|elk`: the view and
+// layout engine it opens with.
 // The fragment never reaches a server (GitHub Pages logs nothing of it), and
 // both ends are platform APIs — CompressionStream exists in browsers and node —
 // so the MCP server's editor links and the app read the same format.
@@ -9,6 +11,9 @@
 
 export const PREFIX = '#d2=';
 export const MAX_SOURCE = 512 * 1024; // bytes of d2, decompressed
+import { LAYOUTS } from './settings.js';
+
+const LOOKS = ['3d', 'flat']; // settings.js `look`; anything else is ignored
 
 const pipe = async (bytes, stream) => new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer());
 
@@ -19,18 +24,24 @@ const toBase64Url = (bytes) => {
 };
 const fromBase64Url = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
 
-/** The fragment for `source`, `#d2=` included. */
-export async function encode(source) {
-  return PREFIX + toBase64Url(await pipe(new TextEncoder().encode(source), new CompressionStream('deflate-raw')));
+/** The fragment for `source`, `#d2=` included; `look`/`layout` add how to open it. */
+export async function encode(source, { look, layout } = {}) {
+  const data = toBase64Url(await pipe(new TextEncoder().encode(source), new CompressionStream('deflate-raw')));
+  return PREFIX + data + (LOOKS.includes(look) ? `&look=${look}` : '') + (LAYOUTS.includes(layout) ? `&layout=${layout}` : '');
 }
 
 /**
- * The d2 source in a `#d2=` fragment; null when `hash` isn't one. Throws on a
- * fragment that is corrupt or decodes past MAX_SOURCE.
+ * `{ source, look, layout }` from a `#d2=` fragment (`look`/`layout` undefined
+ * unless the link names a known one); null when `hash` isn't one. Throws on a fragment that is
+ * corrupt or decodes past MAX_SOURCE.
  */
 export async function decode(hash) {
   if (!hash?.startsWith(PREFIX)) return null;
-  const stream = new Blob([fromBase64Url(hash.slice(PREFIX.length))]).stream()
+  const [data, ...params] = hash.slice(PREFIX.length).split('&');
+  const query = new URLSearchParams(params.join('&'));
+  const look = query.get('look');
+  const layout = query.get('layout');
+  const stream = new Blob([fromBase64Url(data)]).stream()
     .pipeThrough(new DecompressionStream('deflate-raw'));
   // Read incrementally, so an inflating bomb is stopped at the cap rather than
   // after it has filled memory.
@@ -41,5 +52,10 @@ export async function decode(hash) {
     if (size > MAX_SOURCE) throw new Error(`The linked diagram is over ${MAX_SOURCE / 1024} KB, so it was not opened.`);
     chunks.push(chunk);
   }
-  return new TextDecoder('utf-8', { fatal: true }).decode(await new Blob(chunks).arrayBuffer());
+  const source = new TextDecoder('utf-8', { fatal: true }).decode(await new Blob(chunks).arrayBuffer());
+  return {
+    source,
+    look: LOOKS.includes(look) ? look : undefined,
+    layout: LAYOUTS.includes(layout) ? layout : undefined,
+  };
 }
