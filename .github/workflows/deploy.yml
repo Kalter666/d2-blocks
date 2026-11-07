@@ -22,6 +22,7 @@ jobs:
   build:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    timeout-minutes: 20 # a hang fails in minutes, not at GitHub's 6 h default
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,6 +45,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 20 # a hang fails in minutes, not at GitHub's 6 h default
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}

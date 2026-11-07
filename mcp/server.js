@@ -111,3 +111,9 @@ server.registerTool('open_in_editor', {
 }, guard(async (args) => text(await openInEditor(args))));
 
 await server.connect(new StdioServerTransport());
+
+// Exit when the client goes away. Nothing else would: the d2 worker keeps the
+// event loop alive, so a client that closed the pipe without killing us (or
+// killed only the npx wrapper in front of us) left an orphan holding a wasm
+// worker — and, in CI, the job's output pipe, which hung it for six hours.
+for (const event of ['end', 'close']) process.stdin.on(event, () => process.exit(0)); // 'end' for a file-backed stdin

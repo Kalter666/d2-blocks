@@ -42,3 +42,14 @@ test('check_d2 answers in JSON', async () => {
   const r = await call('check_d2', { source: 'a -> b' });
   assert.equal(JSON.parse(r.content[0].text).roundTrip, 'exact');
 });
+
+test('the server exits when its client closes stdin', async () => {
+  // A client that only closes the pipe must not leave an orphan with a d2 worker.
+  const { spawn } = await import('node:child_process');
+  const child = spawn(process.execPath, [new URL('./server.js', import.meta.url).pathname], { stdio: ['pipe', 'ignore', 'ignore'] });
+  const exited = new Promise((resolve) => child.on('exit', resolve));
+  child.stdin.end();
+  const code = await Promise.race([exited, new Promise((r) => setTimeout(() => r('still running'), 10_000))]);
+  if (code === 'still running') child.kill();
+  assert.equal(code, 0);
+});

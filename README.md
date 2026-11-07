@@ -171,7 +171,7 @@ no npm account.
   ```
 
 `latest` follows new releases; pin one by using
-`releases/download/mcp-v1.1.0/d2-blocks-mcp.tgz` instead. Inside a clone of this
+`releases/download/mcp-v1.1.1/d2-blocks-mcp.tgz` instead. Inside a clone of this
 repo, Claude Code picks up the development copy from `.mcp.json` instead.
 
 Web Claude and ChatGPT can only reach MCP servers hosted at a public URL, and

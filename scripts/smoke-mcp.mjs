@@ -13,6 +13,10 @@ import { join, resolve } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 
+// A hang must fail, not stall CI until the job limit: this run passed in 3 s and
+// then waited six hours on an orphaned server holding its output pipe.
+setTimeout(() => { console.error('smoke: timed out after 120 s'); process.exit(1); }, 120_000).unref();
+
 const target = process.argv[2];
 if (!target) throw new Error('usage: smoke-mcp.mjs <tarball path or URL>');
 const pkg = /^https?:/.test(target) ? target : resolve(target);
@@ -40,3 +44,4 @@ try {
   await client.close();
   await rm(cwd, { recursive: true, force: true });
 }
+process.exit(0); // don't wait on anything the server's npx wrapper left behind
