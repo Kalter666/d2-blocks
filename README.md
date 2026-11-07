@@ -66,6 +66,7 @@ Each one has a short demo in **[docs/FEATURES.md](docs/FEATURES.md)**:
 - [Examples gallery](docs/FEATURES.md#examples-gallery) — thirty-odd architectures with live previews
 - [Mermaid import](docs/FEATURES.md#mermaid-import) — and Copy Mermaid back out
 - [Export](docs/FEATURES.md#export) — Copy d2, Copy Mermaid, Download SVG
+- Share link — a link that opens the diagram for anyone, in the same view and layout. The diagram travels in the link's `#d2=` fragment, so nothing is uploaded ([format](#how-it-works))
 - [Language](docs/FEATURES.md#language) — English and Russian
 
 ## Shapes are roles

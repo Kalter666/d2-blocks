@@ -22,6 +22,8 @@ export default {
     'toolbar.language': 'language',
     'toolbar.busy': 'drawing…',
     'toolbar.importMermaid': 'Import Mermaid',
+    'toolbar.share': 'Share link',
+    'toolbar.shareTitle': 'Copy a link that opens this diagram, in this view, for anyone. The diagram travels in the link itself; nothing is uploaded.',
     'toolbar.copyMermaid': 'Copy Mermaid',
     'toolbar.copyD2': 'Copy d2',
     'toolbar.downloadSvg': 'Download SVG',
@@ -68,6 +70,7 @@ export default {
     // toasts
     'toast.copiedD2': 'd2 copied to clipboard',
     'toast.copiedMermaid': 'mermaid copied to clipboard',
+    'toast.copiedLink': 'link copied — it opens this diagram for anyone',
     'toast.exampleLoaded': '{title} loaded',
     'toast.mermaidImported': 'mermaid imported',
     'toast.linkOpened': 'diagram opened from the link — undo brings back yours',

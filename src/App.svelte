@@ -5,7 +5,7 @@
   import MermaidImport from './MermaidImport.svelte';
   import { onMount } from 'svelte';
   import { draw } from './d2.js';
-  import { decode } from './share.js';
+  import { decode, encode } from './share.js';
   import { keys, newBlock, DIRECTIONS } from './blocks.js';
   import {
     app, source, add, undo, redo, canUndo, canRedo, save, saving, setSource, commit,
@@ -104,6 +104,17 @@
   async function copyCode() {
     await navigator.clipboard.writeText(src);
     flash(t('toast.copiedD2'));
+  }
+
+  /**
+   * A link that opens this diagram, in this view and layout, for anyone: the
+   * same #d2= format the MCP server hands out. Built on this page's own address,
+   * so a dev server shares dev links.
+   */
+  async function copyLink() {
+    const hash = await encode(src, { look: app.look, layout: app.layout });
+    await navigator.clipboard.writeText(`${location.origin}${location.pathname}${hash}`);
+    flash(t('toast.copiedLink'));
   }
 
   async function copyMermaid() {
@@ -243,6 +254,7 @@
   {#if app.busy}<span class="busy" aria-live="polite">{t('toolbar.busy')}</span>{/if}
 
   <button onclick={() => (showMermaid = true)}>{t('toolbar.importMermaid')}</button>
+  <button onclick={copyLink} title={t('toolbar.shareTitle')}>{t('toolbar.share')}</button>
   <button onclick={copyMermaid}>{t('toolbar.copyMermaid')}</button>
   <button onclick={copyCode}>{t('toolbar.copyD2')}</button>
   <button class="primary" onclick={downloadSvg}>{t('toolbar.downloadSvg')}</button>

@@ -21,6 +21,8 @@ export default {
     'toolbar.language': 'язык',
     'toolbar.busy': 'рисуем…',
     'toolbar.importMermaid': 'Импорт Mermaid',
+    'toolbar.share': 'Ссылка',
+    'toolbar.shareTitle': 'Скопировать ссылку, которая откроет эту диаграмму в этом виде у любого. Диаграмма хранится в самой ссылке; ничего не загружается.',
     'toolbar.copyMermaid': 'Копировать Mermaid',
     'toolbar.copyD2': 'Копировать d2',
     'toolbar.downloadSvg': 'Скачать SVG',
@@ -67,6 +69,7 @@ export default {
     // уведомления
     'toast.copiedD2': 'd2 скопирован в буфер обмена',
     'toast.copiedMermaid': 'mermaid скопирован в буфер обмена',
+    'toast.copiedLink': 'ссылка скопирована — она откроет эту диаграмму у любого',
     'toast.exampleLoaded': 'Пример «{title}» загружен',
     'toast.mermaidImported': 'mermaid импортирован',
     'toast.linkOpened': 'диаграмма открыта по ссылке — отмена вернёт вашу',
